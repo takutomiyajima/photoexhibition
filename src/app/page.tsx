@@ -334,7 +334,7 @@ export default function Page() {
             <motion.img
               src={p.src}
               alt={p.title}
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              className="absolute inset-0 h-full w-full object-contain md:object-cover object-center"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -352,8 +352,8 @@ export default function Page() {
       {/* ===================================================== */}
       {/* 4. 下部 黒帯テキスト（黒は固定・文字だけフェード）     */}
       {/* ===================================================== */}
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-black">
-        <div className="px-3 pt-3 pb-4 md:px-6 md:pt-4 md:pb-5">
+      <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center pb-1">
+        <div className="w-full max-w-4xl bg-black/95 rounded-t-xl px-3 pt-2 pb-3 md:px-6 md:pt-4 md:pb-5 shadow-2xl">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${currentIdx}-${lang}`}
@@ -385,14 +385,14 @@ export default function Page() {
                     <button
                       onClick={() => scrollToIndex(currentIdx - 1)}
                       disabled={currentIdx === 0}
-                      className="disabled:opacity-30 hover:text白"
+                      className="disabled:opacity-30 hover:text-white"
                     >
                       ←
                     </button>
                     <button
                       onClick={() => scrollToIndex(currentIdx + 1)}
                       disabled={currentIdx === photos.length - 1}
-                      className="disabled:opacity-30 hover:text白"
+                      className="disabled:opacity-30 hover:text-white"
                     >
                       →
                     </button>
@@ -467,7 +467,7 @@ export default function Page() {
               />
               <div className="flex items-center gap-2">
                 <button
-                  className="text-xs md:text-sm px-2 py-1 rounded bg-white/10 hover:bg白/20 transition"
+                  className="text-xs md:text-sm px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition"
                   onClick={() => setLang((l) => (l === "ja" ? "en" : "ja"))}
                 >
                   {lang === "ja" ? "EN" : "JP"}
@@ -511,9 +511,9 @@ export default function Page() {
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.45, delay: 0.1 }}
                 >
-                  <div className="flex items-center justify-between gap-4 text-xs md:text-sm text白/70">
+                  <div className="flex items-center justify-between gap-4 text-xs md:text-sm text-white/70">
                     <div className="flex flex-col gap-1">
-                      <span className="inline-block bg白 text-black text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-sm">
+                      <span className="inline-block bg-white text-black text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-sm">
                         {text.penLabel}
                       </span>
                       <span className="text-sm md:text-base">
@@ -528,7 +528,7 @@ export default function Page() {
                   </div>
 
                   <div>
-                    <h1 className="inline-block bg-white text黒 text-2xl md:text-[34px] font-extrabold tracking-tight px-2 py-1 leading-snug">
+                    <h1 className="inline-block bg-white text-black text-2xl md:text-[34px] font-extrabold tracking-tight px-2 py-1 leading-snug">
                       {lang === "ja"
                         ? detail.title
                         : detail.titleEn ?? detail.title}
@@ -554,7 +554,7 @@ export default function Page() {
                 {/* Back / Home / Next */}
                 <section className="pt-4">
                   <div className="relative flex items-center justify-between text-xs md:text-sm">
-                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[1px] bgwhite" />
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[1px] bg-white" />
                     <button
                       onClick={() =>
                         setDetailIdx((i) =>
