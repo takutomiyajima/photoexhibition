@@ -19,12 +19,12 @@ export default function PhotoDetailPage() {
     return (
         <main className="relative min-h-screen bg-black text-white overflow-hidden">
             {/* 背景暗転フェード */}
-            <div className="absolute inset-0 bg-black opacity-0 animate-[fadeIn_300ms_ease-out_forwards]" />
+            <div className="absolute inset-0 bg-black opacity-0 fade-in-overlay" />
 
             {/* 画像カード */}
             <section className="relative z-10 flex min-h-screen items-center justify-center p-4 md:p-10">
                 <div className="w-full max-w-5xl overflow-hidden rounded-2xl bg-white/5 shadow-2xl ring-1 ring-white/10 backdrop-blur
-                        opacity-0 translate-y-3 scale-[0.985] animate-[cardIn_450ms_ease-out_120ms_forwards]">
+                        opacity-0 translate-y-3 scale-[0.985] card-animate">
                     <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-0 md:gap-6">
                         <div className="relative aspect-[3/2] md:aspect-auto md:h-[68vh]">
                             <img
@@ -65,17 +65,6 @@ export default function PhotoDetailPage() {
                 </div>
             </section>
 
-            {/* CSS keyframes */}
-            <style jsx global>{`
-        @keyframes fadeIn {
-          0% { opacity: 0; }
-          100% { opacity: 0.6; }
-        }
-        @keyframes cardIn {
-          0%   { opacity: 0; transform: translateY(12px) scale(0.985); }
-          100% { opacity: 1; transform: translateY(0)     scale(1); }
-        }
-      `}</style>
         </main>
     );
 }

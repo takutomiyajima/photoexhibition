@@ -25,6 +25,36 @@ body {
   font-family: "Noto Sans JP", "Hiragino Sans", "Helvetica", "Arial", sans-serif;
 }
 
+.fade-in-overlay {
+  animation: fadeIn 300ms ease-out forwards;
+}
+
+.card-animate {
+  animation: cardIn 450ms ease-out 120ms forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes cardIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* ロゴが下から「ゴゴゴゴ…」とせり上がる */
 @keyframes logo-rise {
   0% {
