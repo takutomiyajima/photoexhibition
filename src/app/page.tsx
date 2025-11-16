@@ -91,35 +91,77 @@ export default function Page() {
 
   const currentPhoto = photos[currentIdx];
 
-  // ===== 詳細ビュー用スワイプ判定 =====
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
-    null
-  );
+  // ================================
+  // 一覧ビュー：下スクロールで詳細へ
+  // ================================
+  const [listTouchStartY, setListTouchStartY] = useState<number | null>(null);
+
+  const handleListWheel = (e: React.WheelEvent<HTMLElement>) => {
+    if (detailIdx !== null) return;
+    if (e.deltaY > 40) {
+      e.preventDefault();
+      setDetailIdx(currentIdx);
+    }
+  };
+
+  const handleListTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    if (detailIdx !== null) return;
+    const t = e.touches[0];
+    setListTouchStartY(t.clientY);
+  };
+
+  const handleListTouchEnd = (e: React.TouchEvent<HTMLElement>) => {
+    if (detailIdx !== null || listTouchStartY === null) return;
+    const t = e.changedTouches[0];
+    const dy = t.clientY - listTouchStartY;
+    setListTouchStartY(null);
+
+    // 上方向スワイプ（指は上へ）で詳細オープン
+    if (dy < -60) {
+      setDetailIdx(currentIdx);
+    }
+  };
+
+  // ================================
+  // 詳細ビュー：左右スワイプ + 上スワイプで戻る
+  // ================================
+  const [detailTouchStart, setDetailTouchStart] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const handleDetailTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (detailIdx === null) return;
     const t = e.touches[0];
-    setTouchStart({ x: t.clientX, y: t.clientY });
+    setDetailTouchStart({ x: t.clientX, y: t.clientY });
   };
 
   const handleDetailTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (detailIdx === null || !touchStart) return;
+    if (detailIdx === null || !detailTouchStart) return;
     const t = e.changedTouches[0];
-    const dx = t.clientX - touchStart.x;
-    const dy = t.clientY - touchStart.y;
-    setTouchStart(null);
+    const dx = t.clientX - detailTouchStart.x;
+    const dy = t.clientY - detailTouchStart.y;
+    setDetailTouchStart(null);
 
+    // 1. 横スワイプ優先：左右で前後の写真
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0 && detailIdx < photos.length - 1) {
         setDetailIdx(detailIdx + 1);
       } else if (dx > 0 && detailIdx > 0) {
         setDetailIdx(detailIdx - 1);
       }
+      return;
+    }
+
+    // 2. 上方向スワイプ（指を上へ動かす: dy < 0）で一覧へ戻る
+    if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) && dy < 0) {
+      setDetailIdx(null);
     }
   };
 
   const detail = detailIdx !== null ? photos[detailIdx] : null;
 
-  // ===== 言語テキスト =====
+  // ===== テキスト =====
   const text = {
     introLine:
       lang === "ja"
@@ -127,8 +169,8 @@ export default function Page() {
         : "Every adventure begins with a single frame.",
     tapToOpen: lang === "ja" ? "タップして開く" : "Tap to open",
     penLabel: lang === "ja" ? "ペンネーム" : "Pen Name",
-    penLabelSmall: lang === "ja" ? "ペンネーム" : "Pen Name",
-    scrollGuide: lang === "ja" ? "Tap / Swipe →" : "Tap / Swipe →",
+    scrollGuide:
+      lang === "ja" ? "下にスクロールで詳細へ" : "Scroll down for details",
     back: lang === "ja" ? "Back" : "Back",
     home: lang === "ja" ? "Home" : "Home",
     next: lang === "ja" ? "Next" : "Next",
@@ -137,10 +179,19 @@ export default function Page() {
     menuClose: lang === "ja" ? "閉じる" : "Close",
   };
 
+  // 一覧用：英語タイトル（ペンネーム）と日本語タイトル
+  const penTitleEn = currentPhoto.titleEn ?? currentPhoto.title;
+  const titleJa = currentPhoto.title;
+
   return (
-    <main className="relative min-h-screen bg-black text-white overflow-hidden">
+    <main
+      className="relative min-h-screen bg-black text-white overflow-hidden"
+      onWheel={handleListWheel}
+      onTouchStart={handleListTouchStart}
+      onTouchEnd={handleListTouchEnd}
+    >
       {/* ===================================================== */}
-      {/* 1. フルスクリーン ロゴイントロ（迫力強化版）          */}
+      {/* 1. フルスクリーン ロゴイントロ                         */}
       {/* ===================================================== */}
       <AnimatePresence>
         {!introDone && (
@@ -154,7 +205,6 @@ export default function Page() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* 背景：うごめく光のグラデーション */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-br from-[#020617] via-[#020617] to-black"
               initial={{ opacity: 0 }}
@@ -168,7 +218,6 @@ export default function Page() {
               transition={{ duration: 1.4, ease: "easeOut" }}
             />
 
-            {/* 斜めに走る「世界を切り裂く」ライン */}
             <div className="absolute inset-0 overflow-hidden">
               {[0, 1, 2].map((i) => (
                 <motion.div
@@ -190,7 +239,6 @@ export default function Page() {
               ))}
             </div>
 
-            {/* ロゴの残像グロー */}
             <motion.div
               className="absolute h-[260px] w-[260px] md:h-[420px] md:w-[420px] rounded-full bg-white/5 blur-3xl"
               initial={{ scale: 0.6, opacity: 0 }}
@@ -198,7 +246,6 @@ export default function Page() {
               transition={{ duration: 1.6, ease: "easeOut" }}
             />
 
-            {/* ロゴ本体 */}
             <motion.div className="relative flex flex-col items-center">
               <motion.img
                 src="/logo/kettei_3.png"
@@ -216,7 +263,6 @@ export default function Page() {
                 }}
               />
 
-              {/* キャッチコピー */}
               <motion.p
                 className="mt-6 text-xs md:text-sm text-white/90 tracking-wide text-center px-4"
                 initial={{ opacity: 0, y: 10 }}
@@ -226,7 +272,6 @@ export default function Page() {
                 {text.introLine}
               </motion.p>
 
-              {/* Tap to open */}
               <motion.span
                 className="mt-5 text-[11px] md:text-xs text-white/70 inline-flex items-center gap-2"
                 initial={{ opacity: 0 }}
@@ -247,7 +292,7 @@ export default function Page() {
       </AnimatePresence>
 
       {/* ===================================================== */}
-      {/* 2. ヘッダー（ロゴ左上固定 + 言語トグル + ハンバーガー）*/}
+      {/* 2. ヘッダー                                           */}
       {/* ===================================================== */}
       <header className="fixed left-0 right-0 top-0 z-30 flex items-start justify-between px-4 pt-4 pb-3 md:px-6 md:pt-5 md:pb-4 bg-gradient-to-b from-black via-black/60 to-transparent">
         <img
@@ -262,7 +307,6 @@ export default function Page() {
           >
             {lang === "ja" ? "EN" : "JP"}
           </button>
-          {/* ハンバーガー */}
           <button
             className="h-9 w-9 flex flex-col items-center justify-center gap-[5px] rounded bg-white/5 hover:bg-white/15 transition"
             onClick={() => setMenuOpen(true)}
@@ -275,7 +319,6 @@ export default function Page() {
         </div>
       </header>
 
-      {/* ハンバーガーメニュー本体 */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -319,7 +362,7 @@ export default function Page() {
       </AnimatePresence>
 
       {/* ===================================================== */}
-      {/* 3. 横スクロール フルスクリーン写真ビュー               */}
+      {/* 3. 横スクロール写真ビュー                             */}
       {/* ===================================================== */}
       <div
         ref={containerRef}
@@ -334,11 +377,11 @@ export default function Page() {
             <motion.img
               src={p.src}
               alt={p.title}
-              className="absolute inset-0 h-full w-full object-contain md:object-cover object-center"
+              className="absolute inset-0 h-full w-full object-cover md:object-cover object-center"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              onClick={() => setDetailIdx(i)}
+              onClick={() => setDetailIdx(i)} // タップでも開ける
             />
             {p.date && (
               <div className="absolute bottom-3 right-3 text-[11px] md:text-xs text-white/80">
@@ -350,10 +393,18 @@ export default function Page() {
       </div>
 
       {/* ===================================================== */}
-      {/* 4. 下部 黒帯テキスト（黒は固定・文字だけフェード）     */}
+      {/* 4. 下部 黒帯テキスト                                  */}
       {/* ===================================================== */}
       <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center pb-1">
-        <div className="w-full max-w-4xl bg-black/95 rounded-t-xl px-3 pt-2 pb-3 md:px-6 md:pt-4 md:pb-5 shadow-2xl">
+        <div
+          className="
+            w-full max-w-4xl bg-black/95 rounded-t-xl
+            px-3 pt-1 pb-2
+            md:px-6 md:pt-4 md:pb-5
+            shadow-2xl
+            max-h-[25vh] md:max-h-none
+          "
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={`${currentIdx}-${lang}`}
@@ -362,16 +413,15 @@ export default function Page() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35 }}
             >
-              {/* 上段：Pen Name / カウンタ / ← → */}
-              <div className="flex items-end justify-between gap-4 border-b border-white/30 pb-3">
+              {/* 上段：Pen Name / カウンタ */}
+              <div className="flex items-end justify-between gap-4 border-b border-white/30 pb-2 md:pb-3">
                 <div className="space-y-1">
-                  <div className="text-[11px] md:text-xs text-white/60">
-                    {text.penLabelSmall}
+                  <div className="inline-block bg-white text-black text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-sm">
+                    {text.penLabel}
                   </div>
-                  <div className="text-xs md:text-sm text-white/85">
-                    {lang === "ja"
-                      ? currentPhoto.title
-                      : currentPhoto.titleEn ?? currentPhoto.title}
+                  {/* 英字ペンネーム（titleEn） */}
+                  <div className="text-[12px] md:text-sm text-white/85">
+                    {penTitleEn}
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-1 text-xs">
@@ -400,32 +450,17 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* 下段：タイトル + キャプション */}
-              <div className="mt-3">
-                <div className="inline-block bg-white text-black text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-sm mb-1">
-                  {text.penLabel}
-                </div>
-                <div className="text-[13px] md:text-sm text-white/80 mb-2">
-                  {text.penLabelSmall}
-                </div>
+              {/* 下段：白背景の日本語タイトルのみ */}
+              <div className="mt-2 md:mt-3">
                 <h1 className="inline-block bg-white text-black text-2xl md:text-[30px] font-extrabold tracking-tight px-2 py-1 leading-snug">
-                  {lang === "ja"
-                    ? currentPhoto.title
-                    : currentPhoto.titleEn ?? currentPhoto.title}
+                  {titleJa}
                 </h1>
-                {(currentPhoto.caption || currentPhoto.captionEn) && (
-                  <p className="mt-2 max-w-3xl text-[12px] md:text-sm leading-relaxed text-white/85 bg-white/5 p-2 md:p-3 rounded">
-                    {lang === "ja"
-                      ? currentPhoto.caption
-                      : currentPhoto.captionEn ?? currentPhoto.caption}
-                  </p>
-                )}
               </div>
             </motion.div>
           </AnimatePresence>
 
-          {/* 横スクロールのガイド */}
-          <div className="mt-3 flex items-center justify-center gap-2 text-[11px] md:text-xs text-white/70">
+          {/* ガイド */}
+          <div className="mt-2 md:mt-3 flex items-center justify-center gap-2 text-[11px] md:text-xs text-white/70">
             <span>{text.scrollGuide}</span>
             <div className="h-[1px] w-16 bg-white/40 overflow-hidden">
               <div className="h-full w-1/3 bg-white scroll-dot" />
@@ -435,7 +470,7 @@ export default function Page() {
       </div>
 
       {/* ===================================================== */}
-      {/* 5. 詳細ビュー（写真タップ → 少し縮んでから拡大表示）  */}
+      {/* 5. 詳細ビュー                                         */}
       {/* ===================================================== */}
       <AnimatePresence>
         {detail && (
@@ -447,7 +482,7 @@ export default function Page() {
             onTouchStart={handleDetailTouchStart}
             onTouchEnd={handleDetailTouchEnd}
           >
-            {/* 左右の黒いゾーンをタップすると閉じる */}
+            {/* 左右の黒いゾーンタップで閉じる */}
             <button
               className="absolute inset-y-0 left-0 w-[16vw] z-40"
               onClick={() => setDetailIdx(null)}
@@ -483,7 +518,7 @@ export default function Page() {
 
             <div className="flex-1 overflow-y-auto pb-10">
               <div className="mx-auto max-w-5xl px-3 md:px-6 pt-4 md:pt-6 space-y-8 md:space-y-10">
-                {/* 写真：ふわっと拡大 */}
+                {/* 写真 */}
                 <motion.div
                   className="relative w-full aspect-[3/2] md:h-[70vh] overflow-hidden bg-black"
                   initial={{ opacity: 0, scale: 0.92 }}
@@ -503,7 +538,7 @@ export default function Page() {
                   )}
                 </motion.div>
 
-                {/* テキスト：下からスライドアップ */}
+                {/* テキスト */}
                 <motion.section
                   className="space-y-4 md:space-y-6"
                   initial={{ opacity: 0, y: 20 }}
@@ -517,7 +552,7 @@ export default function Page() {
                         {text.penLabel}
                       </span>
                       <span className="text-sm md:text-base">
-                        {text.penLabelSmall}
+                        {detail.titleEn ?? detail.title}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -529,9 +564,7 @@ export default function Page() {
 
                   <div>
                     <h1 className="inline-block bg-white text-black text-2xl md:text-[34px] font-extrabold tracking-tight px-2 py-1 leading-snug">
-                      {lang === "ja"
-                        ? detail.title
-                        : detail.titleEn ?? detail.title}
+                      {detail.title}
                     </h1>
                     {(detail.location || detail.locationEn) && (
                       <div className="mt-2 text-xs md:text-sm text-white/70">
