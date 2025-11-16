@@ -12,8 +12,8 @@ type ExtPhoto = (typeof PHOTOS)[number] & {
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
-/** 01/21 の「01」だけを上下スライドさせるコンポーネント */
-const SlideNumber: React.FC<{ value: number }> = ({ value }) => {
+/** 01/21 の「01」部分だけをスライドさせるカウンタ */
+const SlideNumber = ({ value }: { value: number }) => {
   const v = pad2(value);
   return (
     <div className="relative inline-block h-[1.4em] overflow-hidden align-baseline">
@@ -37,20 +37,20 @@ export default function Page() {
   const photos = PHOTOS as ExtPhoto[];
 
   const [lang, setLang] = useState<"ja" | "en">("ja");
-  const [currentIdx, setCurrentIdx] = useState(0); // 一覧で中央にいる写真
-  const [detailIdx, setDetailIdx] = useState<number | null>(null); // 詳細で表示中の写真
-  const [introDone, setIntroDone] = useState(false); // イントロが終わったか
-  const [menuOpen, setMenuOpen] = useState(false); // ハンバーガーメニュー
+  const [currentIdx, setCurrentIdx] = useState(0); // 一覧で中央の写真
+  const [detailIdx, setDetailIdx] = useState<number | null>(null); // 詳細表示中の写真
+  const [introDone, setIntroDone] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // ===== イントロ（自動終了） =====
+  // イントロ自動終了
   useEffect(() => {
     const timer = setTimeout(() => setIntroDone(true), 3200);
     return () => clearTimeout(timer);
   }, []);
 
-  // ===== 横スクロール中に「今どの写真か」を判定 =====
+  // 横スクロール中に「今どの写真か」を判定
   useEffect(() => {
     if (detailIdx !== null) return;
     const root = containerRef.current;
@@ -91,18 +91,8 @@ export default function Page() {
 
   const currentPhoto = photos[currentIdx];
 
-  // ================================
-  // 一覧ビュー：下スクロールで詳細へ
-  // ================================
+  // 一覧ビュー：上スワイプで詳細へ
   const [listTouchStartY, setListTouchStartY] = useState<number | null>(null);
-
-  const handleListWheel = (e: React.WheelEvent<HTMLElement>) => {
-    if (detailIdx !== null) return;
-    if (e.deltaY > 40) {
-      e.preventDefault();
-      setDetailIdx(currentIdx);
-    }
-  };
 
   const handleListTouchStart = (e: React.TouchEvent<HTMLElement>) => {
     if (detailIdx !== null) return;
@@ -116,15 +106,13 @@ export default function Page() {
     const dy = t.clientY - listTouchStartY;
     setListTouchStartY(null);
 
-    // 上方向スワイプ（指は上へ）で詳細オープン
+    // 上方向スワイプ（指が上に動く → dy < 0）で詳細オープン
     if (dy < -60) {
       setDetailIdx(currentIdx);
     }
   };
 
-  // ================================
   // 詳細ビュー：左右スワイプ + 上スワイプで戻る
-  // ================================
   const [detailTouchStart, setDetailTouchStart] = useState<{
     x: number;
     y: number;
@@ -143,7 +131,7 @@ export default function Page() {
     const dy = t.clientY - detailTouchStart.y;
     setDetailTouchStart(null);
 
-    // 1. 横スワイプ優先：左右で前後の写真
+    // 横スワイプが大きいとき → 前後の写真
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0 && detailIdx < photos.length - 1) {
         setDetailIdx(detailIdx + 1);
@@ -153,7 +141,7 @@ export default function Page() {
       return;
     }
 
-    // 2. 上方向スワイプ（指を上へ動かす: dy < 0）で一覧へ戻る
+    // 上方向スワイプ（指を上に動かす → dy < 0）で一覧へ戻る
     if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) && dy < 0) {
       setDetailIdx(null);
     }
@@ -161,7 +149,7 @@ export default function Page() {
 
   const detail = detailIdx !== null ? photos[detailIdx] : null;
 
-  // ===== テキスト =====
+  // 文言
   const text = {
     introLine:
       lang === "ja"
@@ -170,7 +158,7 @@ export default function Page() {
     tapToOpen: lang === "ja" ? "タップして開く" : "Tap to open",
     penLabel: lang === "ja" ? "ペンネーム" : "Pen Name",
     scrollGuide:
-      lang === "ja" ? "下にスクロールで詳細へ" : "Scroll down for details",
+      lang === "ja" ? "上にスワイプで詳細へ" : "Swipe up for details",
     back: lang === "ja" ? "Back" : "Back",
     home: lang === "ja" ? "Home" : "Home",
     next: lang === "ja" ? "Next" : "Next",
@@ -179,20 +167,16 @@ export default function Page() {
     menuClose: lang === "ja" ? "閉じる" : "Close",
   };
 
-  // 一覧用：英語タイトル（ペンネーム）と日本語タイトル
   const penTitleEn = currentPhoto.titleEn ?? currentPhoto.title;
   const titleJa = currentPhoto.title;
 
   return (
     <main
       className="relative min-h-screen bg-black text-white overflow-hidden"
-      onWheel={handleListWheel}
       onTouchStart={handleListTouchStart}
       onTouchEnd={handleListTouchEnd}
     >
-      {/* ===================================================== */}
-      {/* 1. フルスクリーン ロゴイントロ                         */}
-      {/* ===================================================== */}
+      {/* イントロ */}
       <AnimatePresence>
         {!introDone && (
           <motion.div
@@ -217,35 +201,12 @@ export default function Page() {
               animate={{ opacity: 1, scale: 1.05 }}
               transition={{ duration: 1.4, ease: "easeOut" }}
             />
-
-            <div className="absolute inset-0 overflow-hidden">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="absolute h-[1px] md:h-[2px] w-[160%] bg-white/80"
-                  style={{
-                    top: `${30 + i * 18}%`,
-                    left: "-40%",
-                    rotate: "-18deg",
-                  }}
-                  initial={{ x: "-140%", opacity: 0 }}
-                  animate={{ x: "40%", opacity: [0, 1, 0.3] }}
-                  transition={{
-                    delay: 0.15 + i * 0.12,
-                    duration: 0.9,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                />
-              ))}
-            </div>
-
             <motion.div
               className="absolute h-[260px] w-[260px] md:h-[420px] md:w-[420px] rounded-full bg-white/5 blur-3xl"
               initial={{ scale: 0.6, opacity: 0 }}
               animate={{ scale: 1.2, opacity: [0.4, 0.8, 0.3] }}
               transition={{ duration: 1.6, ease: "easeOut" }}
             />
-
             <motion.div className="relative flex flex-col items-center">
               <motion.img
                 src="/logo/kettei_3.png"
@@ -262,7 +223,6 @@ export default function Page() {
                   ease: [0.16, 1, 0.3, 1],
                 }}
               />
-
               <motion.p
                 className="mt-6 text-xs md:text-sm text-white/90 tracking-wide text-center px-4"
                 initial={{ opacity: 0, y: 10 }}
@@ -271,7 +231,6 @@ export default function Page() {
               >
                 {text.introLine}
               </motion.p>
-
               <motion.span
                 className="mt-5 text-[11px] md:text-xs text-white/70 inline-flex items-center gap-2"
                 initial={{ opacity: 0 }}
@@ -291,9 +250,7 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* ===================================================== */}
-      {/* 2. ヘッダー                                           */}
-      {/* ===================================================== */}
+      {/* ヘッダー */}
       <header className="fixed left-0 right-0 top-0 z-30 flex items-start justify-between px-4 pt-4 pb-3 md:px-6 md:pt-5 md:pb-4 bg-gradient-to-b from-black via-black/60 to-transparent">
         <img
           src="/logo/kettei_3.png"
@@ -319,6 +276,7 @@ export default function Page() {
         </div>
       </header>
 
+      {/* ハンバーガーメニュー */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -361,9 +319,7 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* ===================================================== */}
-      {/* 3. 横スクロール写真ビュー                             */}
-      {/* ===================================================== */}
+      {/* 横スクロール写真ビュー */}
       <div
         ref={containerRef}
         className="snap-x snap-mandatory flex h-screen w-screen overflow-x-auto overflow-y-hidden scroll-smooth"
@@ -377,11 +333,11 @@ export default function Page() {
             <motion.img
               src={p.src}
               alt={p.title}
-              className="absolute inset-0 h-full w-full object-cover md:object-cover object-center"
+              className="absolute inset-0 h-full w-full object-cover object-center"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              onClick={() => setDetailIdx(i)} // タップでも開ける
+              onClick={() => setDetailIdx(i)} // タップでも詳細へ
             />
             {p.date && (
               <div className="absolute bottom-3 right-3 text-[11px] md:text-xs text-white/80">
@@ -392,9 +348,7 @@ export default function Page() {
         ))}
       </div>
 
-      {/* ===================================================== */}
-      {/* 4. 下部 黒帯テキスト                                  */}
-      {/* ===================================================== */}
+      {/* 下部の黒帯（Pen Name + 日本語タイトル） */}
       <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center pb-1">
         <div
           className="
@@ -413,13 +367,12 @@ export default function Page() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35 }}
             >
-              {/* 上段：Pen Name / カウンタ */}
+              {/* 上段：Pen Name + カウンタ */}
               <div className="flex items-end justify-between gap-4 border-b border-white/30 pb-2 md:pb-3">
                 <div className="space-y-1">
                   <div className="inline-block bg-white text-black text-[11px] md:text-xs font-semibold px-2 py-0.5 rounded-sm">
                     {text.penLabel}
                   </div>
-                  {/* 英字ペンネーム（titleEn） */}
                   <div className="text-[12px] md:text-sm text-white/85">
                     {penTitleEn}
                   </div>
@@ -450,7 +403,7 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* 下段：白背景の日本語タイトルのみ */}
+              {/* 下段：白背景の日本語タイトル */}
               <div className="mt-2 md:mt-3">
                 <h1 className="inline-block bg-white text-black text-2xl md:text-[30px] font-extrabold tracking-tight px-2 py-1 leading-snug">
                   {titleJa}
@@ -462,16 +415,11 @@ export default function Page() {
           {/* ガイド */}
           <div className="mt-2 md:mt-3 flex items-center justify-center gap-2 text-[11px] md:text-xs text-white/70">
             <span>{text.scrollGuide}</span>
-            <div className="h-[1px] w-16 bg-white/40 overflow-hidden">
-              <div className="h-full w-1/3 bg-white scroll-dot" />
-            </div>
           </div>
         </div>
       </div>
 
-      {/* ===================================================== */}
-      {/* 5. 詳細ビュー                                         */}
-      {/* ===================================================== */}
+      {/* 詳細ビュー */}
       <AnimatePresence>
         {detail && (
           <motion.div
@@ -482,7 +430,7 @@ export default function Page() {
             onTouchStart={handleDetailTouchStart}
             onTouchEnd={handleDetailTouchEnd}
           >
-            {/* 左右の黒いゾーンタップで閉じる */}
+            {/* 左右タップで閉じるゾーン */}
             <button
               className="absolute inset-y-0 left-0 w-[16vw] z-40"
               onClick={() => setDetailIdx(null)}
@@ -508,7 +456,7 @@ export default function Page() {
                   {lang === "ja" ? "EN" : "JP"}
                 </button>
                 <button
-                  className="inline-flex h-9 w-9 items-center justify-center rounded ring-1 ring-white/30 bg-white/5 hover:bg-white/10 transition"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded ring-1 ring-white/30 bg白/5 hover:bg-white/10 transition"
                   onClick={() => setDetailIdx(null)}
                 >
                   ✕
@@ -532,7 +480,7 @@ export default function Page() {
                     className="h-full w-full object-cover object-center"
                   />
                   {detail.date && (
-                    <div className="absolute bottom-3 right-3 text-[11px] md:text-xs text-white/85">
+                    <div className="absolute bottom-3 right-3 text-[11px] md:text-xs text白/85">
                       {detail.date}
                     </div>
                   )}
@@ -563,11 +511,11 @@ export default function Page() {
                   </div>
 
                   <div>
-                    <h1 className="inline-block bg-white text-black text-2xl md:text-[34px] font-extrabold tracking-tight px-2 py-1 leading-snug">
+                    <h1 className="inline-block bg-white text黒 text-2xl md:text-[34px] font-extrabold tracking-tight px-2 py-1 leading-snug">
                       {detail.title}
                     </h1>
                     {(detail.location || detail.locationEn) && (
-                      <div className="mt-2 text-xs md:text-sm text-white/70">
+                      <div className="mt-2 text-xs md:text-sm text白/70">
                         {lang === "ja"
                           ? detail.location
                           : detail.locationEn ?? detail.location}
@@ -576,76 +524,18 @@ export default function Page() {
                   </div>
 
                   {(detail.caption || detail.captionEn) && (
-                    <p className="max-w-3xl text-[13px] md:text-base leading-relaxed text-white/90 bg-white/5 px-3 py-3 md:px-4 md:py-4 rounded-md">
+                    <p className="max-w-3xl text-[13px] md:text-base leading-relaxed text白/90 bg-white/5 px-3 py-3 md:px-4 md:py-4 rounded-md">
                       {lang === "ja"
                         ? detail.caption
                         : detail.captionEn ?? detail.caption}
                     </p>
                   )}
                 </motion.section>
-
-                {/* Back / Home / Next */}
-                <section className="pt-4">
-                  <div className="relative flex items-center justify-between text-xs md:text-sm">
-                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[1px] bg-white" />
-                    <button
-                      onClick={() =>
-                        setDetailIdx((i) =>
-                          i !== null && i > 0 ? i - 1 : i
-                        )
-                      }
-                      disabled={detailIdx === 0}
-                      className="relative z-10 px-4 py-1 bg-black disabled:opacity-40"
-                    >
-                      {text.back}
-                    </button>
-                    <button
-                      onClick={() => setDetailIdx(null)}
-                      className="relative z-10 px-4 py-1 bg-black"
-                    >
-                      {text.home}
-                    </button>
-                    <button
-                      onClick={() =>
-                        setDetailIdx((i) =>
-                          i !== null && i < photos.length - 1 ? i + 1 : i
-                        )
-                      }
-                      disabled={detailIdx === photos.length - 1}
-                      className="relative z-10 px-4 py-1 bg-black disabled:opacity-40"
-                    >
-                      {text.next}
-                    </button>
-                  </div>
-                </section>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* スクロールインジケータ用 keyframes */}
-      <style jsx global>{`
-        @keyframes scrollDot {
-          0% {
-            transform: translateX(-100%);
-            opacity: 0;
-          }
-          20% {
-            opacity: 1;
-          }
-          80% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateX(200%);
-            opacity: 0;
-          }
-        }
-        .scroll-dot {
-          animation: scrollDot 1.4s ease-in-out infinite;
-        }
-      `}</style>
     </main>
   );
 }
