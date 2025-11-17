@@ -34,7 +34,7 @@ const SlideNumber = ({ value }: { value: number }) => {
   );
 };
 
-/** 画像のデザイン通りの 01/21 + 左右矢印 UI */
+/** 画像イメージに近い 01/21 + 両矢印 UI */
 type PageIndicatorProps = {
   current: number;
   total: number;
@@ -54,36 +54,94 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 }) => {
   return (
     <div className="flex flex-col items-center gap-1 text-xs md:text-sm">
-      {/* 上の数字ボックス（枠つき） */}
-      <div className="border border-white px-4 py-1 bg-black">
-        <span className="flex items-baseline text-white text-2xl md:text-3xl font-bold tracking-widest">
-          {/* 左側 01 はスライドアニメーション */}
+      {/* 上の数字ボックス（枠つき、余白小さめ・現在ページ大きめ） */}
+      <div className="border border-white px-2 py-0.5 bg-black">
+        <span className="flex items-baseline text-white text-3xl md:text-4xl font-bold tracking-[0.25em]">
           <SlideNumber value={current} />
-          {/* 右側 /21 */}
-          <span className="ml-1 opacity-80 text-xl md:text-2xl leading-none">
+          <span className="ml-1 opacity-80 text-lg md:text-2xl leading-none">
             /{pad2(total)}
           </span>
         </span>
       </div>
 
-      {/* 下の矢印 + 横ライン */}
-      <div className="flex items-center justify-center gap-2 mt-1">
+      {/* 下の「ドッキングした両矢印」 */}
+      <div className="flex items-center justify-center mt-1">
+        {/* ← 側：小さめ三角＋長いライン */}
         <button
           onClick={onPrev}
           disabled={!canPrev}
-          className="text-white text-lg md:text-xl disabled:opacity-30 hover:text-white"
+          className="group flex items-center disabled:opacity-30"
         >
-          ←
+          {/* 左向き三角（小さめ） */}
+          <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[12px] border-r-white" />
+          {/* 中央ライン左半分（長め） */}
+          <div className="w-16 md:w-24 h-[2px] bg-white group-hover:h-[3px]" />
         </button>
 
-        <div className="w-20 md:w-24 border-t border-white" />
-
+        {/* → 側：ライン＋三角。-ml-px で中央を 0 距離でドッキング */}
         <button
           onClick={onNext}
           disabled={!canNext}
-          className="text-white text-lg md:text-xl disabled:opacity-30 hover:text-white"
+          className="group flex items-center disabled:opacity-30 -ml-px"
         >
-          →
+          {/* 中央ライン右半分（左とつながる） */}
+          <div className="w-16 md:w-24 h-[2px] bg-white group-hover:h-[3px]" />
+          {/* 右向き三角（小さめ） */}
+          <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[12px] border-l-white" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ===== 詳細画面用 Bottom Bar =====
+type DetailBottomBarProps = {
+  canPrev: boolean;
+  canNext: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onHome: () => void;
+};
+
+const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
+  canPrev,
+  canNext,
+  onPrev,
+  onNext,
+  onHome,
+}) => {
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-[60] bg-black/95 border-t border-white/30">
+      <div className="max-w-md mx-auto flex items-center justify-between px-4 py-2 md:px-8 md:py-3 text-xs md:text-sm text-white">
+        {/* Back */}
+        <button
+          onClick={onPrev}
+          disabled={!canPrev}
+          className="flex items-center gap-1 disabled:opacity-30 hover:text-white"
+        >
+          <span className="text-lg">←</span>
+          <span>Back</span>
+        </button>
+
+        {/* Home */}
+        <div className="flex flex-col items-center">
+          <button
+            onClick={onHome}
+            className="px-4 py-1 md:px-6 md:py-1.5 bg-white text-black text-xs md:text-sm font-semibold rounded-sm hover:bg-gray-100 transition"
+          >
+            Home
+          </button>
+          <div className="mt-1 h-[1px] w-32 md:w-40 bg-white" />
+        </div>
+
+        {/* Next */}
+        <button
+          onClick={onNext}
+          disabled={!canNext}
+          className="flex items-center gap-1 disabled:opacity-30 hover:text-white"
+        >
+          <span>Next</span>
+          <span className="text-lg">→</span>
         </button>
       </div>
     </div>
@@ -171,7 +229,7 @@ export default function Page() {
     }
   };
 
-  // ===== スワイプ（タッチ）用：詳細 → 一覧 =====
+  // ===== スワイプ（タッチ）用：詳細 → 一覧 or 前後へ =====
   const [detailTouchStart, setDetailTouchStart] = useState<{
     x: number;
     y: number;
@@ -267,7 +325,9 @@ export default function Page() {
     tapToOpen: lang === "ja" ? "タップして開く" : "Tap to open",
     penLabel: lang === "ja" ? "ペンネーム" : "Pen Name",
     scrollGuide:
-      lang === "ja" ? "下にスクロール／スワイプで詳細へ" : "Scroll down for details",
+      lang === "ja"
+        ? "下にスクロール／スワイプで詳細へ"
+        : "Scroll down for details",
     menuAbout: lang === "ja" ? "About us" : "About us",
     menuAdGen: lang === "ja" ? "広告ジェネレータ" : "Ad Generator",
     menuClose: lang === "ja" ? "閉じる" : "Close",
@@ -366,7 +426,7 @@ export default function Page() {
         <img
           src="/logo/kettei_3.png"
           alt="冒険 Through the Lens of Adventure"
-          className="h-24 w-auto md:h-28"
+          className="h-20 w-auto md:h-24"
         />
         <div className="flex items-center gap-2 md:gap-3">
           <button
@@ -472,7 +532,7 @@ export default function Page() {
         ))}
       </div>
 
-      {/* 下部の黒帯（Pen Name + 日本語タイトル） */}
+      {/* 下部の黒帯（Pen Name + 日本語タイトル + カウンタ） */}
       <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center pb-1 md:pb-2">
         <div className="w-full max-w-4xl bg-black/95 rounded-t-2xl px-4 pt-2 pb-3 md:px-8 md:pt-5 md:pb-6 shadow-2xl max-h-[28vh] md:max-h-none">
           <AnimatePresence mode="wait">
@@ -494,7 +554,6 @@ export default function Page() {
                   </div>
                 </div>
 
-                {/* ★ ここが新しい PageIndicator ★ */}
                 <PageIndicator
                   current={currentIdx + 1}
                   total={photos.length}
@@ -544,7 +603,7 @@ export default function Page() {
               aria-label="close right"
             />
 
-            {/* 詳細ヘッダー：ロゴ画像 */}
+            {/* 詳細ヘッダー */}
             <header className="flex items-start justify-between px-4 pt-4 pb-3 md:px-6 md:pt-5 md:pb-4 bg-black">
               <img
                 src="/logo/kettei_3.png"
@@ -567,9 +626,10 @@ export default function Page() {
               </div>
             </header>
 
+            {/* 中身スクロールエリア */}
             <div
               ref={detailScrollRef}
-              className="flex-1 overflow-y-auto pb-10"
+              className="flex-1 overflow-y-auto pb-20"
               onWheel={handleDetailWheel}
             >
               <div className="mx-auto max-w-5xl px-4 md:px-6 pt-4 md:pt-6 space-y-8 md:space-y-10">
@@ -601,7 +661,7 @@ export default function Page() {
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.45, delay: 0.1 }}
                 >
-                  <div className="flex items-center justify-between gap-4 text-sm md:text-base text白/80">
+                  <div className="flex items-center justify-between gap-4 text-sm md:text-base text-white/80">
                     <div className="flex flex-col gap-2">
                       <span className="inline-block bg-white text-black text-xs md:text-sm font-semibold px-3 py-1 rounded-sm">
                         {text.penLabel}
@@ -645,6 +705,22 @@ export default function Page() {
                 </motion.section>
               </div>
             </div>
+
+            {/* 詳細画面下部の Back / Home / Next バー */}
+            {detailIdx !== null && (
+              <DetailBottomBar
+                canPrev={detailIdx > 0}
+                canNext={detailIdx < photos.length - 1}
+                onPrev={() => {
+                  if (detailIdx! > 0) setDetailIdx(detailIdx! - 1);
+                }}
+                onNext={() => {
+                  if (detailIdx! < photos.length - 1)
+                    setDetailIdx(detailIdx! + 1);
+                }}
+                onHome={() => setDetailIdx(null)}
+              />
+            )}
           </motion.div>
         )}
       </AnimatePresence>
