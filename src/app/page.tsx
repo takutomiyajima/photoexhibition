@@ -13,11 +13,11 @@ type ExtPhoto = (typeof PHOTOS)[number] & {
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 
-/** 01/21 の「01」部分だけをスライドさせるカウンタ */
+/** スライドする 2 桁カウンタ（見切れ防止＋スタイリッシュな数字） */
 const SlideNumber = ({ value }: { value: number }) => {
   const v = pad2(value);
   return (
-    <div className="relative inline-block h-[1.6em] overflow-hidden align-baseline">
+    <div className="relative h-[2.8rem] md:h-[3.2rem] overflow-hidden leading-none flex items-center">
       <AnimatePresence initial={false} mode="wait">
         <motion.span
           key={v}
@@ -25,7 +25,7 @@ const SlideNumber = ({ value }: { value: number }) => {
           animate={{ y: "0%", opacity: 1 }}
           exit={{ y: "100%", opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="block leading-none"
+          className="block font-['Inter'] text-[2.2rem] md:text-[2.6rem] font-semibold tracking-[0.02em]"
         >
           {v}
         </motion.span>
@@ -34,7 +34,7 @@ const SlideNumber = ({ value }: { value: number }) => {
   );
 };
 
-/** 画像イメージに近い 01/21 + 両矢印 UI */
+/** 01/21 + 両矢印（右寄せ・写真集っぽい UI） */
 type PageIndicatorProps = {
   current: number;
   total: number;
@@ -53,48 +53,49 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
   onNext,
 }) => {
   return (
-    <div className="flex flex-col items-center gap-1 text-xs md:text-sm">
-      {/* 上の数字ボックス（枠つき、余白小さめ・現在ページ大きめ） */}
-      <div className="border border-white px-2 py-0.5 bg-black">
-        <span className="flex items-baseline text-white text-3xl md:text-4xl font-bold tracking-[0.25em]">
+    <div className="flex flex-col items-end gap-1 font-['Roboto_Condensed'] ">
+      {/* 数字ボックス */}
+      <div className="border border-white/90 px-1 py-0 bg-black/85 rounded-sm shadow-[0_0_0_1px_rgba(0,0,0,0.7)]">
+        <div className="flex items-baseline gap-0">
           <SlideNumber value={current} />
-          <span className="ml-1 opacity-80 text-lg md:text-2xl leading-none">
+          <span className="font-['Inter'] text-3xl md:text-2xl font-semibold tracking-[0.02em]">
             /{pad2(total)}
           </span>
-        </span>
+        </div>
       </div>
 
-      {/* 下の「ドッキングした両矢印」 */}
+      {/* ドッキング矢印 */}
       <div className="flex items-center justify-center mt-1">
-        {/* ← 側：小さめ三角＋長いライン */}
+        {/* ←（Prev） */}
         <button
           onClick={onPrev}
           disabled={!canPrev}
-          className="group flex items-center disabled:opacity-30"
+          className="group flex items-center disabled:opacity-30 mr-3"
         >
-          {/* 左向き三角（小さめ） */}
-          <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[12px] border-r-white" />
-          {/* 中央ライン左半分（長め） */}
-          <div className="w-16 md:w-24 h-[2px] bg-white group-hover:h-[3px]" />
+          <div className="flex items-center -mr-[6px]">
+            {/* 左向き三角（◀） */}
+            <div className="w-0 h-0 border-y-[5px] border-y-transparent border-r-[11px] border-r-white" />
+            <div className="h-[2px] w-10 md:w-16 bg-white group-hover:h-[3px] transition-all" />
+          </div>
         </button>
-
-        {/* → 側：ライン＋三角。-ml-px で中央を 0 距離でドッキング */}
+        {/* →（Next） */}
         <button
           onClick={onNext}
           disabled={!canNext}
-          className="group flex items-center disabled:opacity-30 -ml-px"
+          className="group flex items-center disabled:opacity-30 -ml-[6px]"
         >
-          {/* 中央ライン右半分（左とつながる） */}
-          <div className="w-16 md:w-24 h-[2px] bg-white group-hover:h-[3px]" />
-          {/* 右向き三角（小さめ） */}
-          <div className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[12px] border-l-white" />
+          <div className="flex items-center">
+            {/* 右向き三角（▶） */}
+            <div className="h-[2px] w-10 md:w-16 bg-white group-hover:h-[3px] transition-all" />
+            <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[11px] border-l-white" />
+          </div>
         </button>
       </div>
     </div>
   );
 };
 
-// ===== 詳細画面用 Bottom Bar =====
+/** 詳細画面用 BottomBar（Back / Home / Next） */
 type DetailBottomBarProps = {
   canPrev: boolean;
   canNext: boolean;
@@ -112,8 +113,7 @@ const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
 }) => {
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] bg-black/95 border-t border-white/30">
-      <div className="max-w-md mx-auto flex items-center justify-between px-4 py-2 md:px-8 md:py-3 text-xs md:text-sm text-white">
-        {/* Back */}
+      <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-2 md:px-8 md:py-3 text-xs md:text-sm text-white">
         <button
           onClick={onPrev}
           disabled={!canPrev}
@@ -123,7 +123,6 @@ const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
           <span>Back</span>
         </button>
 
-        {/* Home */}
         <div className="flex flex-col items-center">
           <button
             onClick={onHome}
@@ -131,10 +130,9 @@ const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
           >
             Home
           </button>
-          <div className="mt-1 h-[1px] w-32 md:w-40 bg-white" />
+          <div className="mt-1 h-[1px] w-28 md:w-36 bg-white" />
         </div>
 
-        {/* Next */}
         <button
           onClick={onNext}
           disabled={!canNext}
@@ -152,8 +150,8 @@ export default function Page() {
   const photos = PHOTOS as ExtPhoto[];
 
   const [lang, setLang] = useState<"ja" | "en">("ja");
-  const [currentIdx, setCurrentIdx] = useState(0); // 一覧で中央の写真
-  const [detailIdx, setDetailIdx] = useState<number | null>(null); // 詳細表示中の写真
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [detailIdx, setDetailIdx] = useState<number | null>(null);
   const [introDone, setIntroDone] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -208,7 +206,7 @@ export default function Page() {
   const currentPhoto = photos[currentIdx];
   const detail = detailIdx !== null ? photos[detailIdx] : null;
 
-  // ===== スワイプ（タッチ）用：一覧 → 詳細 =====
+  // 一覧 → 詳細（タッチ）
   const [listTouchStartY, setListTouchStartY] = useState<number | null>(null);
 
   const handleListTouchStart = (e: React.TouchEvent<HTMLElement>) => {
@@ -222,24 +220,30 @@ export default function Page() {
     const t = e.changedTouches[0];
     const dy = t.clientY - listTouchStartY;
     setListTouchStartY(null);
-
-    // 指を上にスワイプ（dy < 0） → 詳細オープン
     if (dy < -60) {
       setDetailIdx(currentIdx);
     }
   };
 
-  // ===== スワイプ（タッチ）用：詳細 → 一覧 or 前後へ =====
+  // 詳細 → 一覧 ＋ 前後（タッチ）
   const [detailTouchStart, setDetailTouchStart] = useState<{
     x: number;
     y: number;
+    scrollTop: number;
   } | null>(null);
 
   const handleDetailTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (detailIdx === null) return;
     const t = e.touches[0];
-    setDetailTouchStart({ x: t.clientX, y: t.clientY });
+    const container = detailScrollRef.current;
+
+    setDetailTouchStart({
+      x: t.clientX,
+      y: t.clientY,
+      scrollTop: container?.scrollTop ?? 0,
+    });
   };
+
 
   const handleDetailTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     if (detailIdx === null || !detailTouchStart) return;
@@ -248,7 +252,6 @@ export default function Page() {
     const dy = t.clientY - detailTouchStart.y;
     setDetailTouchStart(null);
 
-    // 横スワイプが大きいとき → 前後の写真
     if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0 && detailIdx < photos.length - 1) {
         setDetailIdx(detailIdx + 1);
@@ -258,23 +261,19 @@ export default function Page() {
       return;
     }
 
-    // 指を上にスワイプ（dy < 0） → 一覧へ戻る
     if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) && dy < 0) {
       setDetailIdx(null);
     }
   };
 
-  // ===== スクロール（マウスホイール・トラックパッド）用 =====
-
-  // 一覧 → 詳細
+  // 一覧 → 詳細（ホイール）
   const [listScrollAccum, setListScrollAccum] = useState(0);
   const LIST_SCROLL_THRESHOLD = 160;
 
   const handleMainWheel = (e: React.WheelEvent<HTMLElement>) => {
-    if (detailIdx !== null) return; // 詳細表示中はここでは何もしない
+    if (detailIdx !== null) return;
 
     if (e.deltaY > 0) {
-      // 下方向スクロール
       setListScrollAccum((prev) => {
         const next = prev + e.deltaY;
         if (next > LIST_SCROLL_THRESHOLD) {
@@ -284,12 +283,11 @@ export default function Page() {
         return next;
       });
     } else if (e.deltaY < 0) {
-      // 上方向ならリセットだけ
       setListScrollAccum(0);
     }
   };
 
-  // 詳細 → 一覧
+  // 詳細 → 一覧（ホイール）
   const [detailScrollAccum, setDetailScrollAccum] = useState(0);
   const DETAIL_SCROLL_THRESHOLD = 160;
 
@@ -300,10 +298,9 @@ export default function Page() {
 
     const { scrollTop } = container;
 
-    // 上方向スクロール ＆ すでに一番上にいるときだけチェック
     if (e.deltaY < 0 && scrollTop <= 0) {
       setDetailScrollAccum((prev) => {
-        const next = prev + e.deltaY; // deltaY は負
+        const next = prev + e.deltaY;
         if (Math.abs(next) > DETAIL_SCROLL_THRESHOLD) {
           setDetailIdx(null);
           return 0;
@@ -311,19 +308,17 @@ export default function Page() {
         return next;
       });
     } else if (e.deltaY > 0) {
-      // 下方向なら戻る意図ではないのでリセット
       setDetailScrollAccum(0);
     }
   };
 
-  // 文言
   const text = {
     introLine:
       lang === "ja"
         ? "冒険、その瞬間は一枚の写真から始まる。"
         : "Every adventure begins with a single frame.",
     tapToOpen: lang === "ja" ? "タップして開く" : "Tap to open",
-    penLabel: lang === "ja" ? "ペンネーム" : "Pen Name",
+    penLabel: lang === "ja" ? "Pen Name" : "Pen Name",
     scrollGuide:
       lang === "ja"
         ? "下にスクロール／スワイプで詳細へ"
@@ -342,7 +337,7 @@ export default function Page() {
 
   return (
     <main
-      className="relative min-h-screen bg-black text-white overflow-hidden"
+      className="relative h-screen bg-black text-white overflow-hidden"
       onTouchStart={handleListTouchStart}
       onTouchEnd={handleListTouchEnd}
       onWheel={handleMainWheel}
@@ -421,8 +416,8 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* ヘッダー：ロゴ画像＋メニュー */}
-      <header className="fixed inset-x-0 top-0 z-30 flex items-start justify-between pl-1 pr-4 pt-5 pb-4 md:pl-2 md:pr-6 md:pt-7 bg-gradient-to-b from-black via-black/70 to-transparent">
+      {/* ヘッダー */}
+      <header className="fixed inset-x-0 top-0 z-30 flex items-start justify-between pl-1 pr-4 pt-5 pb-4 md:pl-4 md:pr-8 md:pt-7 bg-gradient-to-b from-black via-black/70 to-transparent">
         <img
           src="/logo/kettei_3.png"
           alt="冒険 Through the Lens of Adventure"
@@ -447,7 +442,7 @@ export default function Page() {
         </div>
       </header>
 
-      {/* 右側の縦 SCROLL インジケータ（1枚目・一覧ビューだけ表示） */}
+      {/* 右側 SCROLL インジケータ（一覧 1 枚目だけ） */}
       {detailIdx === null && currentIdx === 0 && (
         <div className="fixed inset-y-0 right-5 z-20 flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center gap-2">
@@ -503,10 +498,10 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* 横スクロール写真ビュー */}
+      {/* 横スクロール写真ビュー（スマホ基準 / PC は横いっぱい） */}
       <div
         ref={containerRef}
-        className="snap-x snap-mandatory flex h-screen w-screen overflow-x-auto overflow-y-hidden scroll-smooth"
+        className="snap-x snap-mandatory flex h-screen w-screen overflow-x-auto overflow-y-hidden scroll-smooth touch-pan-x"
       >
         {photos.map((p, i) => (
           <section
@@ -521,7 +516,7 @@ export default function Page() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              onClick={() => setDetailIdx(i)} // タップでも詳細へ
+              onClick={() => setDetailIdx(i)}
             />
             {p.date && (
               <div className="absolute bottom-3 right-3 text-xs md:text-sm text-white/85">
@@ -532,50 +527,63 @@ export default function Page() {
         ))}
       </div>
 
-      {/* 下部の黒帯（Pen Name + 日本語タイトル + カウンタ） */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center pb-1 md:pb-2">
-        <div className="w-full max-w-4xl bg-black/95 rounded-t-2xl px-4 pt-2 pb-3 md:px-8 md:pt-5 md:pb-6 shadow-2xl max-h-[28vh] md:max-h-none">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${currentIdx}-${lang}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35 }}
-            >
-              {/* 上段：Pen Name + カウンタ */}
-              <div className="flex items-end justify-between gap-4 border-b border-white/30 pb-3 md:pb-4">
-                <div className="space-y-2">
-                  <div className="inline-block bg-white text-black text-xs md:text-sm font-semibold px-3 py-1 rounded-sm">
-                    {text.penLabel}
+      {/* 下部黒帯（スマホ用 UI / PC は中央寄せで横に広い） */}
+      <div className="fixed inset-x-0 bottom-0 z-20">
+        <div className="w-full bg-black/95 md:bg-black/90 md:rounded-none shadow-2xl">
+          <div className="relative mx-auto w-full max-w-[480px] md:max-w-5xl px-4 pt-2 pb-3 md:px-8 md:pt-5 md:pb-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${currentIdx}-${lang}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35 }}
+              >
+                {/* 上段：Pen Name + カウンタ（右寄せ） */}
+                <div className="flex items-end justify-between pb-3 md:pb-2">
+                  <div className="space-y-0.5">
+                    <div className="inline-block text-white text-xs md:text-sm font-nomal px-1 py-1 rounded-sm">
+                      {text.penLabel}
+                    </div>
+                    <div className="text-2xl md:text-base font-semibold text-white ">
+                      {penTitleEn}
+                    </div>
                   </div>
-                  <div className="text-sm md:text-base text-white/90">
-                    {penTitleEn}
-                  </div>
+
+                  <PageIndicator
+                    current={currentIdx + 1}
+                    total={photos.length}
+                    canPrev={currentIdx > 0}
+                    canNext={currentIdx < photos.length - 1}
+                    onPrev={() => scrollToIndex(currentIdx - 1)}
+                    onNext={() => scrollToIndex(currentIdx + 1)}
+                  />
                 </div>
 
-                <PageIndicator
-                  current={currentIdx + 1}
-                  total={photos.length}
-                  canPrev={currentIdx > 0}
-                  canNext={currentIdx < photos.length - 1}
-                  onPrev={() => scrollToIndex(currentIdx - 1)}
-                  onNext={() => scrollToIndex(currentIdx + 1)}
-                />
-              </div>
 
-              {/* 下段：白背景の日本語タイトル */}
-              <div className="mt-3 md:mt-4">
-                <h1 className="inline-block bg-white text-black text-3xl md:text-4xl font-extrabold tracking-tight px-3 py-1.5 leading-snug">
-                  {titleJa}
-                </h1>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+                {/* タイトル帯 */}
+                <div className="mt-3 md:mt-4 flex flex-col space-y-1">
 
-          {/* ガイド */}
-          <div className="mt-3 md:mt-4 flex items-center justify-center gap-2 text-xs md:text-sm text-white/80">
-            <span>{text.scrollGuide}</span>
+                  {/* ▼ ブロック1：ペンネーム（文字幅だけの白帯） */}
+                  <div className="inline-block bg-white text-black px-2 py-0.5 rounded text-xs md:text-sm font-normal leading-tight">
+                    {text.penLabel}
+                  </div>
+
+                  {/* ▼ ブロック2：タイトル（文字幅だけの白帯） */}
+                  <h1 className="inline-block bg-white text-black px-2 py-1 rounded text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
+                    {titleJa}
+                  </h1>
+                </div>
+
+
+
+              </motion.div>
+            </AnimatePresence>
+
+            {/* ガイド */}
+            <div className="mt-3 md:mt-4 flex items-center justify-center gap-2 text-xs md:text-sm text-white/80">
+              <span>{text.scrollGuide}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -591,7 +599,6 @@ export default function Page() {
             onTouchStart={handleDetailTouchStart}
             onTouchEnd={handleDetailTouchEnd}
           >
-            {/* 左右タップで閉じるゾーン */}
             <button
               className="absolute inset-y-0 left-0 w-[16vw] z-40"
               onClick={() => setDetailIdx(null)}
@@ -603,7 +610,6 @@ export default function Page() {
               aria-label="close right"
             />
 
-            {/* 詳細ヘッダー */}
             <header className="flex items-start justify-between px-4 pt-4 pb-3 md:px-6 md:pt-5 md:pb-4 bg-black">
               <img
                 src="/logo/kettei_3.png"
@@ -626,14 +632,12 @@ export default function Page() {
               </div>
             </header>
 
-            {/* 中身スクロールエリア */}
             <div
               ref={detailScrollRef}
               className="flex-1 overflow-y-auto pb-20"
               onWheel={handleDetailWheel}
             >
               <div className="mx-auto max-w-5xl px-4 md:px-6 pt-4 md:pt-6 space-y-8 md:space-y-10">
-                {/* 写真 */}
                 <motion.div
                   className="relative w-full aspect-[3/2] md:h-[70vh] overflow-hidden bg-black rounded-xl md:rounded-2xl"
                   initial={{ opacity: 0, scale: 0.92 }}
@@ -653,7 +657,6 @@ export default function Page() {
                   )}
                 </motion.div>
 
-                {/* テキスト */}
                 <motion.section
                   className="space-y-4 md:space-y-6"
                   initial={{ opacity: 0, y: 20 }}
@@ -698,25 +701,22 @@ export default function Page() {
                     </p>
                   )}
 
-                  {/* 一覧に戻るガイド */}
                   <div className="pt-2 pb-4 flex items-center justify-center text-xs md:text-sm text-white/70">
                     {text.swipeUpBack}
                   </div>
                 </motion.section>
               </div>
             </div>
-
-            {/* 詳細画面下部の Back / Home / Next バー */}
             {detailIdx !== null && (
               <DetailBottomBar
                 canPrev={detailIdx > 0}
                 canNext={detailIdx < photos.length - 1}
                 onPrev={() => {
-                  if (detailIdx! > 0) setDetailIdx(detailIdx! - 1);
+                  if (detailIdx > 0) setDetailIdx(detailIdx - 1);
                 }}
                 onNext={() => {
-                  if (detailIdx! < photos.length - 1)
-                    setDetailIdx(detailIdx! + 1);
+                  if (detailIdx < photos.length - 1)
+                    setDetailIdx(detailIdx + 1);
                 }}
                 onHome={() => setDetailIdx(null)}
               />
@@ -724,6 +724,6 @@ export default function Page() {
           </motion.div>
         )}
       </AnimatePresence>
-    </main>
+    </main >
   );
 }
