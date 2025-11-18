@@ -109,52 +109,74 @@ const DetailBottomBar: React.FC<DetailBottomBarProps> = ({
 }) => {
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] bg-black/95 border-t border-white/30">
-      <div className="max-w-lg mx-auto flex items-center justify-center 
-                      gap-12 md:gap-16 
-                      px-4 py-2 md:px-8 md:py-3 
-                      text-xs md:text-sm text-white">
-        <button
-          onClick={onPrev}
-          disabled={!canPrev}
-          className="flex items-center gap-1 disabled:opacity-30 hover:text-white"
-        >
-          <span>Back</span>
-        </button>
-
-        <button
-          onClick={onHome}
-          className="px-4 py-1 md:px-6 md:py-1.5 bg-white text-black 
-                     text-xs md:text-sm font-semibold rounded-sm 
-                     hover:bg-gray-100 transition"
-        >
-          Home
-        </button>
-
-        <button
-          onClick={onNext}
-          disabled={!canNext}
-          className="flex items-center gap-1 disabled:opacity-30 hover:text-white"
-        >
-          <span>Next</span>
-        </button>
-      </div>
-      <div className="flex items-center justify-center">
-        {/* ←（Prev） */}
-        <div className="flex items-center -mr-[6px]">
-          {/* 左向き三角（◀） */}
-          <div className="w-0 h-0 border-y-[5px] border-y-transparent border-r-[11px] border-r-white" />
-          <div className="h-[2px] w-60 md:w-16 bg-white group-hover:h-[3px] transition-all" />
+      {/* ===== 3つのボタンを1/4ずつ等間隔に配置 ===== */}
+      <div
+        className="
+          max-w-lg mx-auto 
+          grid grid-cols-4 
+          text-white text-xs md:text-sm 
+          px-4 py-2 md:px-8 md:py-3
+        "
+      >
+        {/* Back（左から1/4位置） */}
+        <div className="col-span-1 flex justify-center items-center">
+          <button
+            onClick={onPrev}
+            disabled={!canPrev}
+            className="disabled:opacity-30 hover:text-white"
+          >
+            Back
+          </button>
         </div>
-        {/* →（Next） */}
-        <div className="flex items-center">
-          {/* 右向き三角（▶） */}
-          <div className="h-[2px] w-60 md:w-16 bg-white group-hover:h-[3px] transition-all" />
-          <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[11px] border-l-white" />
+
+        {/* Home（中央1/4位置） */}
+        <div className="col-span-2 flex justify-center items-center">
+          <button
+            onClick={onHome}
+            className="
+              px-4 py-1 md:px-6 md:py-1.5 
+              bg-white text-black 
+              text-xs md:text-sm font-semibold rounded-sm 
+              hover:bg-gray-100 transition
+            "
+          >
+            Home
+          </button>
+        </div>
+
+        {/* Next（右から1/4位置） */}
+        <div className="col-span-1 flex justify-center items-center">
+          <button
+            onClick={onNext}
+            disabled={!canNext}
+            className="disabled:opacity-30 hover:text-white"
+          >
+            Next
+          </button>
         </div>
       </div>
+
+      {/* ===== 下段：ロング矢印 ===== */}
+      <div className="flex items-center justify-center py-0">
+        <div className="flex items-center w-[92vw]">
+          {/* 左側：◀━━━━ */}
+          <div className="flex items-center flex-1">
+            <div className="w-0 h-0 border-y-[7px] border-y-transparent border-r-[14px] border-r-white" />
+            <div className="h-[2px] w-full bg-white" />
+          </div>
+
+          {/* 右側：━━━━▶ */}
+          <div className="flex items-center flex-1">
+            <div className="h-[2px] w-full bg-white" />
+            <div className="w-0 h-0 border-y-[7px] border-y-transparent border-l-[14px] border-l-white" />
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };
+
 
 const DETAIL_SWIPE_CONFIDENCE = 100;
 
