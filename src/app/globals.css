@@ -147,3 +147,13 @@ body {
 .intro-logo-wiggle {
   animation: logo-wiggle 0.6s ease-out 0.55s both;
 }
+
+/* 文字の中に写真をはめ込む用 */
+.text-photo-mask {
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(90%) brightness(1.5) contrast(1.1);
+}
