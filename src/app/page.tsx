@@ -203,6 +203,22 @@ export default function Page() {
     const timer = setTimeout(() => setIntroDone(true), 3200);
     return () => clearTimeout(timer);
   }, []);
+  // detailIdx が変わったら currentIdx を合わせる
+  useEffect(() => {
+    if (detailIdx !== null) {
+      setCurrentIdx(detailIdx);
+    }
+  }, [detailIdx]);
+  // 詳細ビューが閉じられたとき、一覧を正しい位置にスクロール
+  useEffect(() => {
+    if (detailIdx === null && containerRef.current) {
+      containerRef.current.scrollTo({
+        left: currentIdx * window.innerWidth,
+        behavior: "instant", // iOS Safari では instant が安定
+      });
+    }
+  }, [detailIdx]);
+
 
   // 横スクロール中に「今どの写真か」を判定
   useEffect(() => {
