@@ -474,18 +474,75 @@ export default function Page() {
         </div>
       </header>
 
-      {/* 右側 SCROLL インジケータ（一覧 1 枚目だけ） */}
-      {detailIdx === null && currentIdx === 0 && (
-        <div className="fixed inset-y-0 right-5 z-20 flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs md:text-sm tracking-[0.3em] text-white/80 [writing-mode:vertical-rl]">
-              SCROLL
-            </span>
-            <span className="block h-12 w-px bg-white/70" />
-            <span className="inline-block border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-white" />
-          </div>
-        </div>
-      )}
+      {/* 右側 SCROLL インジケータ（一覧ビューの全ページで表示＋アニメーション） */}
+      <AnimatePresence>
+        {detailIdx === null && (
+          <motion.div
+            className="fixed inset-y-0 right-5 z-20 flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="flex flex-row items-center gap-3">
+              {/* 縦書き SCROLL テキスト（ふわっと上下＋点滅） */}
+              <motion.span
+                className="text-xs md:text-sm tracking-[0.3em] text-white/80 [writing-mode:vertical-rl]"
+                initial={{ opacity: 0.4, y: 0 }}
+                animate={{
+                  opacity: [0.4, 1, 0.4],
+                  y: [0, -6, 0],
+                }}
+                transition={{
+                  duration: 1.6,
+                  repeat: Infinity,
+                  repeatType: "mirror",
+                  ease: "easeInOut",
+                }}
+              >
+                SCROLL
+              </motion.span>
+
+              {/* 右側：縦ライン＋矢印を縦並び */}
+              <div className="flex flex-col items-center gap-2">
+                {/* 縦ライン（伸び縮み） */}
+                <motion.span
+                  className="block h-12 w-px bg-white/70 origin-top"
+                  initial={{ scaleY: 0.6, opacity: 0.7 }}
+                  animate={{
+                    scaleY: [0.6, 1, 0.6],
+                    opacity: [0.7, 1, 0.7],
+                  }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    repeatType: "mirror",
+                    ease: "easeInOut",
+                  }}
+                />
+
+                {/* 下向き矢印（三角形）上下にゆっくり動かす */}
+                <motion.span
+                  className="inline-block border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-white"
+                  initial={{ y: 0, opacity: 0.9 }}
+                  animate={{
+                    y: [0, 6, 0],
+                    opacity: [0.9, 1, 0.9],
+                  }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    repeatType: "mirror",
+                    ease: "easeInOut",
+                  }}
+                />
+              </div>
+            </div>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* ハンバーガーメニュー */}
       <AnimatePresence>
