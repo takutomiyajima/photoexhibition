@@ -183,9 +183,6 @@ export default function Page() {
   const photos = PHOTOS as ExtPhoto[];
   const router = useRouter();
 
-  // ヒーロー写真：PHOTOSの先頭を使用（最初に表示される写真と揃える）
-  const heroPhoto = photos[0];
-
   const [lang, setLang] = useState<"ja" | "en">("ja");
   const [currentIdx, setCurrentIdx] = useState(0);
   const [detailIdx, setDetailIdx] = useState<number | null>(null);
@@ -197,6 +194,34 @@ export default function Page() {
 
   // detailIdx が null のとき用の安全な index
   const activeDetailIdx = detailIdx ?? 0;
+
+  // ===== ランダムスタート =====
+
+  // 最初の写真 index（SSR では 0、CSR でランダムに変わる）
+  const [startIdx, setStartIdx] = useState(0);
+
+  // mount 後にランダム確定（hydration error 回避）
+  useEffect(() => {
+    const idx = Math.floor(Math.random() * PHOTOS.length);
+    setStartIdx(idx);
+  }, []);
+
+  // ヒーロー写真（冒険の文字マスクに埋め込む写真）
+  const heroPhoto = photos[startIdx];
+
+  // 一覧もランダムの写真を最初に表示
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+
+    root.scrollTo({
+      left: startIdx * window.innerWidth,
+      behavior: "instant",
+    });
+
+    setCurrentIdx(startIdx);
+  }, [startIdx]);
+
 
   // イントロ自動終了
   useEffect(() => {
