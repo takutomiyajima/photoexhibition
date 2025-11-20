@@ -291,7 +291,7 @@ export default function Page() {
     setDetailTouchStart(null);
 
     // 横方向は framer-motion の drag で処理するので、ここでは縦方向だけ見る
-    if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) && dy < 0) {
+    if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) && dy > 0) {
       setDetailIdx(null);
     }
   };
