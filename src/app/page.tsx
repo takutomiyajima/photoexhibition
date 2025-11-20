@@ -9,13 +9,12 @@ import { useRouter } from "next/navigation";
 type ExtPhoto = (typeof PHOTOS)[number];
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
-const router = useRouter();
 
 /** スライドする 2 桁カウンタ（見切れ防止＋スタイリッシュな数字） */
 const SlideNumber = ({ value }: { value: number }) => {
   const v = pad2(value);
   return (
-    <div className="relative h-[2.8rem] md:h-[3.2rem] overflow-hidden leading-none flex items-center">
+    <div className="relative h-[2.2rem] md:h-[2.6rem] overflow-hidden leading-none flex items-center">
       <AnimatePresence initial={false} mode="wait">
         <motion.span
           key={v}
@@ -53,10 +52,10 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
   return (
     <div className="flex flex-col items-end gap-1 font-['Roboto_Condensed'] ">
       {/* 数字ボックス */}
-      <div className="border border-white/90 px-1 py-0 bg-black/85 rounded-sm shadow-[0_0_0_1px_rgba(0,0,0,0.7)]">
+      <div className="border border-white/50 px-1 py-0 bg-black/85 shadow-[0_0_0_1px_rgba(0,0,0,0.7)]">
         <div className="flex items-baseline gap-0">
           <SlideNumber value={current} />
-          <span className="font-noto text-3xl md:text-2xl font-semibold tracking-[0.02em]">
+          <span className="font-noto text-3xl md:text-1xl font-semibold tracking-[0.02em]">
             /{pad2(total)}
           </span>
         </div>
@@ -184,6 +183,7 @@ const DETAIL_SWIPE_CONFIDENCE = 100;
 
 export default function Page() {
   const photos = PHOTOS as ExtPhoto[];
+  const router = useRouter();
 
   const [lang, setLang] = useState<"ja" | "en">("ja");
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -701,7 +701,7 @@ export default function Page() {
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.div
                       key={detail.id}
-                      className="relative w-full aspect-[3/2] md:h-[70vh] overflow-hidden bg-black rounded-xl md:rounded-2xl"
+                      className="relative w-full aspect-[3/2] md:h-[70vh] overflow-hidden bg-black md:rounded-2xl"
                       initial={{ opacity: 0, scale: 0.92, x: 0 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.96, x: 0 }}
