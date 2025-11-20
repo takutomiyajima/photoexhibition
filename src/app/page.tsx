@@ -21,7 +21,7 @@ const SlideNumber = ({ value }: { value: number }) => {
           animate={{ y: "0%", opacity: 1 }}
           exit={{ y: "100%", opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="block font-['Inter'] text-[2.2rem] md:text-[2.6rem] font-semibold tracking-[0.02em]"
+          className="block font-noto text-[2.2rem] md:text-[2.6rem] font-semibold tracking-[0.02em]"
         >
           {v}
         </motion.span>
@@ -54,7 +54,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
       <div className="border border-white/90 px-1 py-0 bg-black/85 rounded-sm shadow-[0_0_0_1px_rgba(0,0,0,0.7)]">
         <div className="flex items-baseline gap-0">
           <SlideNumber value={current} />
-          <span className="font-['Inter'] text-3xl md:text-2xl font-semibold tracking-[0.02em]">
+          <span className="font-noto text-3xl md:text-2xl font-semibold tracking-[0.02em]">
             /{pad2(total)}
           </span>
         </div>
