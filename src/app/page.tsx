@@ -4,10 +4,12 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PHOTOS } from "@/components/photoData";
+import { useRouter } from "next/navigation";
 
 type ExtPhoto = (typeof PHOTOS)[number];
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
+const router = useRouter();
 
 /** スライドする 2 桁カウンタ（見切れ防止＋スタイリッシュな数字） */
 const SlideNumber = ({ value }: { value: number }) => {
@@ -507,20 +509,32 @@ export default function Page() {
                 ✕
               </button>
             </div>
+
+            {/* ====== メニュー項目 ====== */}
             <div className="flex-1 flex flex-col items-center justify-center gap-10 text-center">
+              {/* About Us */}
               <button
                 className="text-2xl md:text-3xl tracking-wide hover:text-white/60 transition"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/about");
+                }}
               >
                 {text.menuAbout}
               </button>
+
+              {/* 広告ジェネレータ → /frame */}
               <button
                 className="text-2xl md:text-3xl tracking-wide hover:text-white/60 transition"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push("/frame"); // ← ここで遷移
+                }}
               >
                 {text.menuAdGen}
               </button>
             </div>
+
             <div className="pb-6 text-center text-xs md:text-sm text-white/50">
               {text.menuClose}
             </div>
