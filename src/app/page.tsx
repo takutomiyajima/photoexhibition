@@ -406,7 +406,7 @@ export default function Page() {
                 <div
                   className="text-photo-mask font-extrabold font-noto leading-[0.9] text-center"
                   style={{
-                    fontSize: "24vw",
+                    fontSize: "48vw",
                     backgroundImage: `url(${heroPhoto.src})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
