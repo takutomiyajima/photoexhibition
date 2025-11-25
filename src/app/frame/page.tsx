@@ -1,85 +1,20 @@
 "use client";
-import React from "react";
-import { useEffect, useRef, useState } from "react";
 
-/* ===================== i18n ===================== */
-type Locale = "ja" | "en";
-const MESSAGES: Record<Locale, Record<string, string>> = {
-    ja: {
-        badge: "Photo Frame Lab",
-        title: "冒険フレーム ジェネレーター",
-        lead1: "写真をアップロードして、写真集「冒険」のフレームにはめ込んだ画像を生成できます。",
-        lead2: "プレビュー上でドラッグして位置を調整できます。",
-        step: "Step",
-        step1: "写真をアップロード",
-        step1_hint:
-            "JPEG / PNG など。選択した画像はブラウザ内だけで処理され、サーバには送信されません。",
-        chooseImage: "画像ファイルを選択",
-        step2: "フレームを選択",
-        step3_mobile_title: "プレビュー ＆ ダウンロード",
-        step3_pc_title: "画像をダウンロード",
-        step3_desc_mobile:
-            "プレビュー上の画像を指でドラッグすると、写真の表示位置を調整できます。出力サイズは 1080×1350px の PNG です。",
-        step3_desc_pc:
-            "実際の出力と同じ比率で表示されます。プレビュー上をドラッグして、写真の位置を微調整できます。",
-        btn_download_ready: "この画像を保存する",
-        btn_download_ready_pc: "合成画像をダウンロード",
-        btn_downloading: "描画中…",
-        output_format: "出力形式：PNG（フレーム付き、1080×1350px）",
-        no_photo_mobile:
-            "まだ写真が選択されていません。上の「写真をアップロード」から画像を選んでください。",
-        no_photo_pc:
-            "まだ写真が選択されていません。左側の「写真をアップロード」から画像を選んでください。",
-        footer: "写真は端末内のみで処理されます／Powered by Next.js & Canvas",
-        using_frame: "使用フレーム：",
-        lang_toggle: "EN",
-        frame_label: "冒険フレーム",
-    },
-    en: {
-        badge: "Photo Frame Lab",
-        title: "Adventure Frame Generator",
-        lead1:
-            'Upload a photo and generate an image framed with the "Adventure" design.',
-        lead2: "Drag on the preview to adjust the photo position.",
-        step: "Step",
-        step1: "Upload a Photo",
-        step1_hint:
-            "JPEG / PNG, etc. Your image is processed locally in the browser and never uploaded to the server.",
-        chooseImage: "Choose Image File",
-        step2: "Select a Frame",
-        step3_mobile_title: "Preview & Download",
-        step3_pc_title: "Download",
-        step3_desc_mobile:
-            "Drag on the preview to reposition your photo. Output image is PNG 1080×1350.",
-        step3_desc_pc:
-            "Preview shows the final aspect ratio. Drag to fine-tune the photo position.",
-        btn_download_ready: "Save This Image",
-        btn_download_ready_pc: "Download Composited Image",
-        btn_downloading: "Rendering…",
-        output_format: "Output: PNG with frame (1080×1350)",
-        no_photo_mobile:
-            'No photo selected yet. Use "Upload a Photo" above to choose one.',
-        no_photo_pc:
-            'No photo selected yet. Use "Upload a Photo" on the left to choose one.',
-        footer: "All processing happens locally • Powered by Next.js & Canvas",
-        using_frame: "Frame: ",
-        lang_toggle: "日本語",
-        frame_label: "Adventure Frame",
-    },
+import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+
+type Frame = { id: string; src: string; label: string };
+
+const FRAME: Frame = {
+    id: "frame1",
+    src: "/frames/frame1.png", // ★ 自分のフレーム画像パス
+    label: "冒険フレーム",
 };
 
-/* ===================== Frames ===================== */
-type Frame = {
-    id: string;
-    src: string;
-    labelKey: string;
-};
+type Offset = { x: number; y: number };
+type Step = "upload" | "adjust" | "done";
 
-const FRAMES: Frame[] = [
-    { id: "frame1", src: "/frames/frame1.png", labelKey: "frame_label" },
-];
-
-/* ============ Responsive (mobile detection) ============ */
 function useIsMobile(breakpoint = 768): boolean {
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
@@ -91,40 +26,37 @@ function useIsMobile(breakpoint = 768): boolean {
             mq.addEventListener("change", update);
             return () => mq.removeEventListener("change", update);
         } else {
+            // @ts-ignore
             mq.addListener(update);
-            return () => mq.removeListener(update);
+            return () => {
+                // @ts-ignore
+                mq.removeListener(update);
+            };
         }
     }, [breakpoint]);
     return isMobile;
 }
 
-type Offset = { x: number; y: number };
+export default function FrameGeneratorPage() {
+    const isMobile = useIsMobile();
+    const router = useRouter();
 
-export default function HomePage() {
-    /* ===== i18n ===== */
-    const [locale, setLocale] = useState<Locale>("ja");
-    const t = (key: string) => MESSAGES[locale][key] ?? key;
-
-    // 初期言語をブラウザ設定から推定
-    useEffect(() => {
-        if (typeof navigator === "undefined") return;
-        const lang = (navigator.language || "ja").toLowerCase();
-        setLocale(lang.startsWith("en") ? "en" : "ja");
-    }, []);
+    const [step, setStep] = useState<Step>("upload");
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const photoImageRef = useRef<HTMLImageElement | null>(null);
     const frameImageRef = useRef<HTMLImageElement | null>(null);
 
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-    const [selectedFrame, setSelectedFrame] = useState<Frame | null>(FRAMES[0]);
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    // 写真の位置オフセット（ドラッグで動かす）
     const [photoOffset, setPhotoOffset] = useState<Offset>({ x: 0, y: 0 });
 
-    // ドラッグ状態を保持
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isDrawing, setIsDrawing] = useState(false);
+
+    // 完成画像 dataURL
+    const [finalUrl, setFinalUrl] = useState<string | null>(null);
+
     const dragStateRef = useRef<{
         dragging: boolean;
         startX: number;
@@ -133,18 +65,190 @@ export default function HomePage() {
         startOffsetY: number;
     } | null>(null);
 
-    const isMobile = useIsMobile();
-
-    // アップロード画像URLのクリーンアップ
+    // objectURL クリーンアップ
     useEffect(() => {
         return () => {
             if (photoUrl) URL.revokeObjectURL(photoUrl);
         };
     }, [photoUrl]);
 
-    // 画像を読み込む
+    /* ===== ステップインジケータ（青いバー＋丸） ===== */
+    const stepsMeta: { id: Step; label: string }[] = [
+        { id: "upload", label: "Upload" },
+        { id: "adjust", label: "Adjust" },
+        { id: "done", label: "Done" },
+    ];
+
+    const StepIndicator: React.FC<{ current: Step }> = ({ current }) => {
+        const currentIndex = stepsMeta.findIndex((s) => s.id === current);
+
+        return (
+            <div style={{ padding: "8px 14px 10px", borderBottom: "1px solid #1f2933" }}>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
+                        gap: 8,
+                    }}
+                >
+                    {stepsMeta.map((s, index) => {
+                        const isDone = index < currentIndex;
+                        const isCurrent = index === currentIndex;
+                        const active = isDone || isCurrent;
+
+                        return (
+                            <div
+                                key={s.id}
+                                style={{
+                                    flex: 1,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    position: "relative",
+                                }}
+                            >
+                                {/* ラベル（丸の上） */}
+                                <div
+                                    style={{
+                                        fontSize: 9,
+                                        marginBottom: 4,
+                                        color: active ? "#e0f2fe" : "#9ca3af",
+                                        fontWeight: active ? 700 : 500,
+                                    }}
+                                >
+                                    {s.label}
+                                </div>
+
+                                {/* 線 */}
+                                {index < stepsMeta.length - 1 && (
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            top: 15,
+                                            left: "50%",
+                                            width: "100%",
+                                            transform: "translateX(0)",
+                                            zIndex: 0,
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                height: 2,
+                                                marginLeft: "50%",
+                                                marginRight: "-50%",
+                                                background:
+                                                    index < currentIndex
+                                                        ? "linear-gradient(to right,#0ea5e9,#38bdf8)"
+                                                        : "#374151",
+                                                opacity: index < currentIndex ? 1 : 0.6,
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* 丸 */}
+                                <div
+                                    style={{
+                                        width: 18,
+                                        height: 18,
+                                        borderRadius: "50%",
+                                        zIndex: 1,
+                                        border: active ? "0" : "2px solid #4b5563",
+                                        backgroundColor: active ? "#0ea5e9" : "#000000",
+                                        boxShadow: active
+                                            ? "0 0 0 2px rgba(56,189,248,0.4)"
+                                            : "0 0 0 0 transparent",
+                                    }}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    /* ===== 上部ヘッダー（ロゴ＋ハンバーガー） ===== */
+    const TopHeader: React.FC = () => (
+        <header
+            style={{
+                height: 56,
+                padding: "0 12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: "1px solid #333333",
+            }}
+        >
+            {/* ロゴ：クリックでトップへ */}
+            <button
+                type="button"
+                onClick={() => {
+                    router.push("/");
+                }}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                }}
+            >
+                <img
+                    src="/logo/kettei_3.png"
+                    alt="冒険 Through the Lens of Adventure"
+                    style={{ height: 40, width: "auto" }} // ★ 少し大きめ
+                />
+            </button>
+
+            {/* ハンバーガー */}
+            <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                style={{
+                    width: 28,
+                    height: 22,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                }}
+                aria-label="Open menu"
+            >
+                <span
+                    style={{
+                        display: "block",
+                        height: 2,
+                        backgroundColor: "#ffffff",
+                    }}
+                />
+                <span
+                    style={{
+                        display: "block",
+                        height: 2,
+                        backgroundColor: "#ffffff",
+                    }}
+                />
+                <span
+                    style={{
+                        display: "block",
+                        height: 2,
+                        backgroundColor: "#ffffff",
+                    }}
+                />
+            </button>
+        </header>
+    );
+
+    /* ===== 画像読み込み ===== */
     useEffect(() => {
-        if (!photoUrl || !selectedFrame) {
+        if (!photoUrl) {
             setIsLoaded(false);
             setIsDrawing(false);
             return;
@@ -155,7 +259,7 @@ export default function HomePage() {
                 const img = new Image();
                 img.crossOrigin = "anonymous";
                 img.onload = () => resolve(img);
-                img.onerror = (err) => reject(err);
+                img.onerror = reject;
                 img.src = src;
             });
 
@@ -167,22 +271,16 @@ export default function HomePage() {
             try {
                 const [photoImg, frameImg] = await Promise.all([
                     loadImage(photoUrl),
-                    loadImage(selectedFrame.src),
+                    loadImage(FRAME.src),
                 ]);
                 if (cancelled) return;
                 photoImageRef.current = photoImg;
                 frameImageRef.current = frameImg;
-
-                // 画像/フレームを変えたら位置をリセット
                 setPhotoOffset({ x: 0, y: 0 });
                 setIsLoaded(true);
             } catch (e) {
-                console.error("画像の読み込みに失敗しました", e);
-                alert(
-                    locale === "ja"
-                        ? "画像の読み込みに失敗しました。フレーム画像のパスやファイルを確認してください。"
-                        : "Failed to load image. Please check the frame image path/file."
-                );
+                console.error(e);
+                alert("画像の読み込みに失敗しました。ファイルやパスを確認してください。");
                 setIsLoaded(false);
             } finally {
                 if (!cancelled) setIsDrawing(false);
@@ -192,9 +290,9 @@ export default function HomePage() {
         return () => {
             cancelled = true;
         };
-    }, [photoUrl, selectedFrame, locale]);
+    }, [photoUrl]);
 
-    // 描画関数
+    /* ===== 実比で描画（縦長フレーム前提） ===== */
     const draw = () => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
@@ -207,58 +305,101 @@ export default function HomePage() {
 
         canvas.width = frameWidth;
         canvas.height = frameHeight;
-
         ctx.clearRect(0, 0, frameWidth, frameHeight);
 
         // 1. フレーム
         ctx.drawImage(frameImg, 0, 0, frameWidth, frameHeight);
 
-        // 2. 白い枠領域（フレーム画像依存・調整可）
+        // 2. フレーム内の写真領域（frame1 に合わせた値）
         const innerX = 41;
         const innerY = 41;
         const innerWidth = 998;
         const innerHeight = 1009;
 
-        // 3. クリッピング
         ctx.save();
         ctx.beginPath();
         ctx.rect(innerX, innerY, innerWidth, innerHeight);
         ctx.clip();
 
-        // 4. coverでフィット
-        const scale = Math.max(innerWidth / photoImg.width, innerHeight / photoImg.height);
+        // cover fit
+        const scale = Math.max(
+            innerWidth / photoImg.width,
+            innerHeight / photoImg.height
+        );
         const drawWidth = photoImg.width * scale;
         const drawHeight = photoImg.height * scale;
 
-        // 中央基準 + ドラッグオフセット
         const baseX = innerX + (innerWidth - drawWidth) / 2;
         const baseY = innerY + (innerHeight - drawHeight) / 2;
+
         const offsetX = baseX + photoOffset.x;
         const offsetY = baseY + photoOffset.y;
 
-        // 5. 写真描画
         ctx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
 
-        // 6. 解除
         ctx.restore();
+
+        // 完成品 dataURL を state に保存
+        try {
+            const dataUrl = canvas.toDataURL("image/png");
+            setFinalUrl(dataUrl);
+        } catch {
+            /* ignore */
+        }
     };
 
-    // 再描画
+    // step も依存に入れて、画面切り替え時にも再描画
     useEffect(() => {
         if (!isLoaded) return;
         draw();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoaded, photoOffset]);
+    }, [isLoaded, photoOffset, step]);
 
-    // 画像選択
+    /* ===== ハンドラ ===== */
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const url = URL.createObjectURL(file);
         setPhotoUrl(url);
+        setFinalUrl(null);
+        setStep("adjust"); // 画像選択したらすぐ Adjust へ
     };
 
-    // ダウンロード
+    const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (!photoUrl || !isLoaded || step !== "adjust") return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.setPointerCapture(e.pointerId);
+        dragStateRef.current = {
+            dragging: true,
+            startX: e.clientX,
+            startY: e.clientY,
+            startOffsetX: photoOffset.x,
+            startOffsetY: photoOffset.y,
+        };
+    };
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        const st = dragStateRef.current;
+        if (!st || !st.dragging) return;
+        const dx = e.clientX - st.startX;
+        const dy = e.clientY - st.startY;
+        setPhotoOffset({ x: st.startOffsetX + dx, y: st.startOffsetY + dy });
+    };
+
+    const endDrag = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        dragStateRef.current = null;
+        if (canvas) {
+            try {
+                canvas.releasePointerCapture(e.pointerId);
+            } catch {
+                // ignore
+            }
+        }
+    };
+
     const handleDownload = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -277,474 +418,793 @@ export default function HomePage() {
         );
     };
 
-    const canDownload = !!photoUrl && !!selectedFrame && isLoaded && !isDrawing;
-
-    /* ===== ドラッグ操作（Pointer Events） ===== */
-    const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (!photoUrl || !isLoaded) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        canvas.setPointerCapture(e.pointerId);
-        dragStateRef.current = {
-            dragging: true,
-            startX: e.clientX,
-            startY: e.clientY,
-            startOffsetX: photoOffset.x,
-            startOffsetY: photoOffset.y,
-        };
-    };
-    const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-        const st = dragStateRef.current;
-        if (!st || !st.dragging) return;
-        const dx = e.clientX - st.startX;
-        const dy = e.clientY - st.startY;
-        setPhotoOffset({ x: st.startOffsetX + dx, y: st.startOffsetY + dy });
-    };
-    const endDrag = (e: React.PointerEvent<HTMLCanvasElement>) => {
-        const canvas = canvasRef.current;
-        dragStateRef.current = null;
-        if (canvas) {
-            try {
-                canvas.releasePointerCapture(e.pointerId);
-            } catch { }
-        }
+    const handleReset = () => {
+        if (photoUrl) URL.revokeObjectURL(photoUrl);
+        setPhotoUrl(null);
+        setPhotoOffset({ x: 0, y: 0 });
+        setIsLoaded(false);
+        setFinalUrl(null);
+        setStep("upload");
     };
 
-    /* ===================== UI ===================== */
+    const canDownload = !!photoUrl && isLoaded && !isDrawing;
 
-    // 共通ヘッダー（右上言語トグル付き）
-    const Header = ({ compact = false }: { compact?: boolean }) => (
-        <header style={{ padding: compact ? "4px 4px 8px" : 0, position: "relative" }}>
-            <button
-                type="button"
-                onClick={() => setLocale((prev) => (prev === "ja" ? "en" : "ja"))}
-                aria-label="toggle language"
-                style={{
-                    position: "absolute",
-                    top: compact ? 4 : 8,
-                    right: compact ? 6 : 12,
-                    padding: compact ? "8px 14px" : "10px 20px",
-                    borderRadius: 999,
-                    border: "2px solid rgba(14,165,233,0.6)",
-                    background: "linear-gradient(135deg, #e0f2fe, #bae6fd)",
-                    color: "#0369a1",
-                    fontSize: compact ? 14 : 16,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    transition: "transform 0.15s ease",
-                }}
-                onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.95)")}
-                onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1.0)")}
-            >
-                🌐 {t("lang_toggle")}
-            </button>
+    /* ===== メニューオーバーレイ（AnimatePresence） ===== */
+    const MenuOverlay: React.FC = () => (
+        <AnimatePresence>
+            {menuOpen && (
+                <motion.div
+                    className="fixed inset-0 z-[55] bg-black/90 backdrop-blur-sm flex flex-col"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                >
+                    <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                        {/* ロゴ：押したら / に戻る */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMenuOpen(false);
+                                router.push("/");
+                            }}
+                            className="flex items-center"
+                        >
+                            <img
+                                src="/logo/kettei_3.png"
+                                alt="冒険 Through the Lens of Adventure"
+                                className="h-12 w-auto md:h-16" // ★ 大きめ
+                            />
+                        </button>
 
-            <div
-                style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "3px 10px",
-                    borderRadius: 999,
-                    backgroundColor: "rgba(15, 118, 110, 0.08)",
-                    color: "#0f766e",
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                }}
-            >
-                <span>{t("badge")}</span>
-            </div>
-            <h1
-                style={{
-                    marginTop: 10,
-                    marginBottom: 4,
-                    fontSize: compact ? 20 : 28,
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                }}
-            >
-                {t("title")}
-            </h1>
-            <p
-                style={{
-                    fontSize: compact ? 12 : 13,
-                    color: "#6b7280",
-                    lineHeight: 1.5,
-                    maxWidth: 520,
-                }}
-            >
-                {t("lead1")} {t("lead2")}
-            </p>
-        </header>
+                        <button
+                            className="inline-flex h-10 w-10 items-center justify-center rounded ring-1 ring-white/30 bg-white/10 hover:bg-white/20 transition"
+                            onClick={() => setMenuOpen(false)}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    {/* メニュー項目 */}
+                    <div className="flex-1 flex flex-col items-center justify-center gap-10 text-center">
+                        {/* About Us */}
+                        <button
+                            className="text-2xl md:text-3xl tracking-wide text-white hover:text-white/60 transition"
+                            onClick={() => {
+                                setMenuOpen(false);
+                                router.push("/about");
+                            }}
+                        >
+                            About Us
+                        </button>
+
+                        {/* 広告ジェネレータ → /frame */}
+                        <button
+                            className="text-2xl md:text-3xl tracking-wide text-white hover:text-white/60 transition"
+                            onClick={() => {
+                                setMenuOpen(false);
+                                router.push("/frame");
+                            }}
+                        >
+                            広告ジェネレータ
+                        </button>
+                    </div>
+
+                    <div className="pb-6 text-center text-xs md:text-sm text-white/50">
+                        画面をタップすると閉じます
+                    </div>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 
+    /* ======== モバイルレイアウト ======== */
+    const renderMobile = () => {
+        const phoneWidth = "100%";
 
-    if (isMobile) {
-        /* ======== スマホ用レイアウト ======== */
         return (
             <main
                 style={{
                     minHeight: "100vh",
-                    background:
-                        "radial-gradient(circle at 0% 0%, #fef3c7 0, #f5f5f5 40%, #e5e7eb 100%)",
+                    backgroundColor: "#000000", // ★ 背景を全て黒に
                     display: "flex",
                     justifyContent: "center",
-                    padding: "16px",
+                    alignItems: "flex-start",
+                    padding: 0,
+                }}
+            >
+                <div
+                    style={{
+                        width: phoneWidth,
+                        maxWidth: 480,
+                        backgroundColor: "#000000",
+                        color: "#ffffff",
+                        borderRadius: 0,
+                        boxShadow: "none",
+                        paddingBottom: 16,
+                    }}
+                >
+                    <TopHeader />
+
+                    {/* タイトル */}
+                    <section
+                        style={{
+                            padding: "8px 14px 6px",
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                marginBottom: 4,
+                            }}
+                        >
+                            冒険フレームジェネレーター
+                        </div>
+                        <p
+                            style={{
+                                fontSize: 9,
+                                color: "#cccccc",
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            写真をアップロードし、「写真集 冒険」のフレームにはめ込んだ画像を生成できます。
+                            プレビュー上でドラッグして位置調整も可能です。
+                        </p>
+                    </section>
+
+                    {/* 青いステップバー */}
+                    <StepIndicator current={step} />
+
+                    {/* Step1: Upload */}
+                    {step === "upload" && (
+                        <section style={{ padding: "10px 14px 8px" }}>
+                            <div
+                                style={{
+                                    marginBottom: 6,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Upload
+                            </div>
+
+                            <div
+                                style={{
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#111111",
+                                    height: 200,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: 9,
+                                    marginBottom: 6,
+                                    padding: 4,
+                                }}
+                            >
+                                {photoUrl ? (
+                                    <img
+                                        src={photoUrl}
+                                        alt="uploaded"
+                                        style={{
+                                            maxWidth: "100%",
+                                            maxHeight: "100%",
+                                            objectFit: "contain",
+                                        }}
+                                    />
+                                ) : (
+                                    <span>ここに選択した画像が表示される</span>
+                                )}
+                            </div>
+
+                            <label
+                                style={{
+                                    display: "inline-block",
+                                    padding: "4px 10px",
+                                    borderRadius: 999,
+                                    border: "1px solid #ffffff",
+                                    fontSize: 9,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                画像ファイルを選択
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    style={{ display: "none" }}
+                                />
+                            </label>
+                        </section>
+                    )}
+
+
+                    {/* Step2: Adjust */}
+                    {step === "adjust" && (
+                        <section style={{ padding: "10px 14px 10px" }}>
+                            <div
+                                style={{
+                                    marginBottom: 6,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Adjust
+                            </div>
+
+                            <div
+                                style={{
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#111111",
+                                    marginBottom: 6,
+                                    padding: 4,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: "100%",
+                                        aspectRatio: "4 / 5",
+                                        backgroundColor: "#000000",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <canvas
+                                        ref={canvasRef}
+                                        onPointerDown={handlePointerDown}
+                                        onPointerMove={handlePointerMove}
+                                        onPointerUp={endDrag}
+                                        onPointerCancel={endDrag}
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            display: "block",
+                                            cursor: step === "adjust" && photoUrl ? "grab" : "default",
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <p
+                                style={{
+                                    fontSize: 9,
+                                    color: "#cccccc",
+                                    marginBottom: 8,
+                                }}
+                            >
+                                プレビュー上をドラッグして、写真の位置を調整してください。
+                            </p>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("upload")}
+                                    style={{
+                                        flex: 1,
+                                        padding: "5px 0",
+                                        borderRadius: 999,
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#000000",
+                                        color: "#ffffff",
+                                        fontSize: 10,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    戻る（Upload）
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("done")}
+                                    style={{
+                                        flex: 1,
+                                        padding: "5px 0",
+                                        borderRadius: 999,
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#ffffff",
+                                        color: "#000000",
+                                        fontSize: 10,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    次へ（Done）
+                                </button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Step3: Done */}
+                    {step === "done" && (
+                        <section style={{ padding: "10px 14px 10px" }}>
+                            <div
+                                style={{
+                                    marginBottom: 6,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Done
+                            </div>
+
+                            <div
+                                style={{
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#111111",
+                                    padding: 4,
+                                    marginBottom: 10,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: "100%",
+                                        aspectRatio: "4 / 5",
+                                        backgroundColor: "#000000",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    {finalUrl ? (
+                                        <img
+                                            src={finalUrl}
+                                            alt="final"
+                                            style={{
+                                                maxWidth: "100%",
+                                                maxHeight: "100%",
+                                                objectFit: "contain",
+                                            }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{
+                                                fontSize: 9,
+                                                color: "#bbbbbb",
+                                            }}
+                                        >
+                                            完成品
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space_between",
+                                    gap: 8,
+                                    marginBottom: 6,
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("adjust")}
+                                    style={{
+                                        flex: 1,
+                                        padding: "6px 0",
+                                        borderRadius: 999,
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#000000",
+                                        color: "#ffffff",
+                                        fontSize: 10,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    戻る（Adjust）
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDownload}
+                                    disabled={!canDownload}
+                                    style={{
+                                        flex: 1,
+                                        padding: "6px 0",
+                                        borderRadius: 999,
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: canDownload ? "#ffffff" : "#444444",
+                                        color: canDownload ? "#000000" : "#aaaaaa",
+                                        fontSize: 10,
+                                        cursor: canDownload ? "pointer" : "not-allowed",
+                                    }}
+                                >
+                                    ダウンロード
+                                </button>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                style={{
+                                    width: "100%",
+                                    padding: "6px 0",
+                                    borderRadius: 999,
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#000000",
+                                    color: "#ffffff",
+                                    fontSize: 10,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                もう一度作る
+                            </button>
+                        </section>
+                    )}
+                </div>
+            </main>
+        );
+    };
+
+    /* ======== PC レイアウト ======== */
+    const renderDesktop = () => {
+        return (
+            <main
+                style={{
+                    minHeight: "100vh",
+                    backgroundColor: "#555555",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "flex-start",
+                    padding: 24,
                 }}
             >
                 <div
                     style={{
                         width: "100%",
-                        maxWidth: 480,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 16,
+                        maxWidth: 960,
+                        backgroundColor: "#000000",
+                        color: "#ffffff",
+                        borderRadius: 6,
+                        boxShadow: "0 0 0 1px #444444",
+                        paddingBottom: 20,
                     }}
                 >
-                    <Header compact />
+                    <TopHeader />
 
-                    {/* Step 1 */}
+                    {/* タイトル */}
                     <section
                         style={{
-                            backgroundColor: "rgba(255, 255, 255, 0.95)",
-                            borderRadius: 16,
-                            padding: 14,
-                            boxShadow: "0 10px 25px rgba(15,23,42,0.08)",
-                            border: "1px solid rgba(148, 163, 184, 0.25)",
+                            padding: "10px 18px 6px",
                         }}
                     >
-                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#9ca3af", marginBottom: 4 }}>
-                            {t("step")} 1
-                        </div>
-                        <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{t("step1")}</h2>
-                        <label
-                            style={{
-                                display: "block",
-                                padding: "14px 12px",
-                                borderRadius: 14,
-                                border: "1px dashed #d1d5db",
-                                background:
-                                    "repeating-linear-gradient(135deg,#f9fafb,#f9fafb 10px,#f3f4f6 10px,#f3f4f6 20px)",
-                                cursor: "pointer",
-                            }}
-                        >
-                            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{t("chooseImage")}</div>
-                            <div style={{ fontSize: 11, color: "#6b7280" }}>{t("step1_hint")}</div>
-                            <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
-                        </label>
-                    </section>
-
-                    {/* Step 2 */}
-                    <section
-                        style={{
-                            backgroundColor: "rgba(255, 255, 255, 0.95)",
-                            borderRadius: 16,
-                            padding: 14,
-                            boxShadow: "0 10px 25px rgba(15,23,42,0.08)",
-                            border: "1px solid rgba(148, 163, 184, 0.25)",
-                        }}
-                    >
-                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#9ca3af", marginBottom: 4 }}>
-                            {t("step")} 2
-                        </div>
-                        <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{t("step2")}</h2>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            {FRAMES.map((frame) => (
-                                <button
-                                    key={frame.id}
-                                    type="button"
-                                    onClick={() => setSelectedFrame(frame)}
-                                    style={{
-                                        borderRadius: 14,
-                                        padding: 6,
-                                        border: selectedFrame?.id === frame.id ? "2px solid #0ea5e9" : "1px solid #e5e7eb",
-                                        backgroundColor: selectedFrame?.id === frame.id ? "rgba(14,165,233,0.06)" : "#f9fafb",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "stretch",
-                                    }}
-                                >
-                                    <div style={{ width: "100%", borderRadius: 10, overflow: "hidden", backgroundColor: "#e5e7eb" }}>
-                                        <img src={frame.src} alt={t(frame.labelKey)} style={{ width: "100%", height: "auto", display: "block" }} />
-                                    </div>
-                                    <span style={{ fontSize: 12, fontWeight: 500, marginTop: 6, textAlign: "left" }}>
-                                        {t(frame.labelKey)}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Step 3 */}
-                    <section
-                        style={{
-                            backgroundColor: "rgba(255, 255, 255, 0.95)",
-                            borderRadius: 16,
-                            padding: 14,
-                            boxShadow: "0 10px 25px rgba(15,23,42,0.08)",
-                            border: "1px solid rgba(148, 163, 184, 0.25)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 10,
-                        }}
-                    >
-                        <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#9ca3af", marginBottom: 4 }}>
-                                {t("step")} 3
-                            </div>
-                            <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{t("step3_mobile_title")}</h2>
-                            <p style={{ fontSize: 11, color: "#6b7280" }}>{t("step3_desc_mobile")}</p>
-                        </div>
-
                         <div
                             style={{
-                                width: "100%",
-                                borderRadius: 14,
-                                padding: 10,
-                                background:
-                                    "linear-gradient(135deg, #f9fafb 0, #eef2ff 50%, #e0f2fe 100%)",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
+                                fontSize: 14,
+                                fontWeight: 700,
+                                marginBottom: 4,
                             }}
                         >
-                            <canvas
-                                ref={canvasRef}
-                                onPointerDown={handlePointerDown}
-                                onPointerMove={handlePointerMove}
-                                onPointerUp={endDrag}
-                                onPointerCancel={endDrag}
-                                style={{
-                                    width: "100%",
-                                    maxHeight: "70vh",
-                                    borderRadius: 12,
-                                    boxShadow: "0 8px 20px rgba(15,23,42,0.25)",
-                                    backgroundColor: "#f3f4f6",
-                                    touchAction: "none",
-                                }}
-                            />
+                            冒険フレームジェネレーター
                         </div>
-
-                        {!photoUrl && (
-                            <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center" }}>{t("no_photo_mobile")}</p>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={handleDownload}
-                            disabled={!canDownload}
+                        <p
                             style={{
-                                width: "100%",
-                                padding: "12px 18px",
-                                borderRadius: 999,
-                                border: "none",
-                                fontSize: 15,
-                                fontWeight: 600,
-                                cursor: canDownload ? "pointer" : "not-allowed",
-                                backgroundColor: canDownload ? "#0f766e" : "#d1d5db",
-                                color: "#ffffff",
-                                boxShadow: canDownload ? "0 10px 25px rgba(15,118,110,0.35)" : "none",
+                                fontSize: 11,
+                                color: "#cccccc",
+                                lineHeight: 1.6,
+                                maxWidth: 640,
                             }}
                         >
-                            {isDrawing ? t("btn_downloading") : t("btn_download_ready")}
-                        </button>
+                            写真をアップロードし、「写真集 冒険」のフレームにはめ込んだ画像を生成できます。
+                            ステップに沿って位置調整・ダウンロードを行ってください。
+                        </p>
                     </section>
 
-                    <footer style={{ paddingTop: 4, paddingBottom: 8, textAlign: "center", fontSize: 10, color: "#9ca3af" }}>
-                        {t("footer")}
-                    </footer>
+                    {/* ステップバー */}
+                    <StepIndicator current={step} />
+
+                    {/* コンテンツ */}
+                    <section
+                        style={{
+                            padding: "14px 18px 0",
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "minmax(0, 320px) minmax(0, 1fr)",
+                                gap: 20,
+                                alignItems: "flex-start",
+                            }}
+                        >
+                            {/* 左：操作 */}
+                            <div>
+                                {/* Upload */}
+                                {step === "upload" && (
+                                    <div>
+                                        <h2
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                marginBottom: 6,
+                                            }}
+                                        >
+                                            Step 1: 写真をアップロード
+                                        </h2>
+                                        <p
+                                            style={{
+                                                fontSize: 11,
+                                                color: "#d1d5db",
+                                                marginBottom: 10,
+                                            }}
+                                        >
+                                            JPEG / PNG などの画像ファイルを選択してください。
+                                            選択した画像はブラウザ内だけで処理され、サーバには送信されません。
+                                        </p>
+                                        <label
+                                            style={{
+                                                display: "inline-block",
+                                                padding: "6px 14px",
+                                                borderRadius: 999,
+                                                border: "1px solid #ffffff",
+                                                fontSize: 11,
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            画像ファイルを選択
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                style={{ display: "none" }}
+                                            />
+                                        </label>
+                                        <p
+                                            style={{
+                                                fontSize: 10,
+                                                color: "#9ca3af",
+                                                marginTop: 8,
+                                            }}
+                                        >
+                                            選択後、自動的に位置調整ステップへ進みます。
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Adjust */}
+                                {step === "adjust" && (
+                                    <div>
+                                        <h2
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                marginBottom: 6,
+                                            }}
+                                        >
+                                            Step 2: 写真の位置を調整
+                                        </h2>
+                                        <p
+                                            style={{
+                                                fontSize: 11,
+                                                color: "#d1d5db",
+                                                marginBottom: 10,
+                                            }}
+                                        >
+                                            右側のプレビュー上でドラッグし、写真の見せたい部分がフレーム内に入るように調整してください。
+                                        </p>
+
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                gap: 10,
+                                                marginTop: 12,
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep("upload")}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "6px 0",
+                                                    borderRadius: 999,
+                                                    border: "1px solid #ffffff",
+                                                    backgroundColor: "#000000",
+                                                    color: "#ffffff",
+                                                    fontSize: 11,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                戻る（Upload）
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep("done")}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "6px 0",
+                                                    borderRadius: 999,
+                                                    border: "1px solid #ffffff",
+                                                    backgroundColor: "#ffffff",
+                                                    color: "#000000",
+                                                    fontSize: 11,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                次へ（Done）
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Done */}
+                                {step === "done" && (
+                                    <div>
+                                        <h2
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                marginBottom: 6,
+                                            }}
+                                        >
+                                            Step 3: ダウンロード
+                                        </h2>
+                                        <p
+                                            style={{
+                                                fontSize: 11,
+                                                color: "#d1d5db",
+                                                marginBottom: 10,
+                                            }}
+                                        >
+                                            完成したフレーム付き画像を PNG としてダウンロードできます。
+                                        </p>
+
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                gap: 10,
+                                                marginBottom: 10,
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep("adjust")}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "6px 0",
+                                                    borderRadius: 999,
+                                                    border: "1px solid #ffffff",
+                                                    backgroundColor: "#000000",
+                                                    color: "#ffffff",
+                                                    fontSize: 11,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                戻る（Adjust）
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleDownload}
+                                                disabled={!canDownload}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "6px 0",
+                                                    borderRadius: 999,
+                                                    border: "1px solid #ffffff",
+                                                    backgroundColor: canDownload ? "#ffffff" : "#444444",
+                                                    color: canDownload ? "#000000" : "#aaaaaa",
+                                                    fontSize: 11,
+                                                    cursor: canDownload ? "pointer" : "not-allowed",
+                                                }}
+                                            >
+                                                ダウンロード
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleReset}
+                                            style={{
+                                                width: "100%",
+                                                padding: "6px 0",
+                                                borderRadius: 999,
+                                                border: "1px solid #ffffff",
+                                                backgroundColor: "#000000",
+                                                color: "#ffffff",
+                                                fontSize: 11,
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            もう一度作る
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 右：プレビュー */}
+                            <div>
+                                {/* 上：キャンバス */}
+                                <div
+                                    style={{
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#111111",
+                                        padding: 8,
+                                        marginBottom: 10,
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            width: "100%",
+                                            aspectRatio: "4 / 5",
+                                            backgroundColor: "#000000",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        <canvas
+                                            ref={canvasRef}
+                                            onPointerDown={handlePointerDown}
+                                            onPointerMove={handlePointerMove}
+                                            onPointerUp={endDrag}
+                                            onPointerCancel={endDrag}
+                                            style={{
+                                                width: "100%",
+                                                height: "100%",
+                                                display: "block",
+                                                cursor:
+                                                    step === "adjust" && photoUrl ? "grab" : "default",
+                                                pointerEvents: step === "adjust" ? "auto" : "none",
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* 下：完成品プレビュー */}
+                                <div
+                                    style={{
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#111111",
+                                        padding: 8,
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            width: "100%",
+                                            aspectRatio: "4 / 5",
+                                            backgroundColor: "#000000",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        {finalUrl ? (
+                                            <img
+                                                src={finalUrl}
+                                                alt="final"
+                                                style={{
+                                                    maxWidth: "100%",
+                                                    maxHeight: "100%",
+                                                    objectFit: "contain",
+                                                }}
+                                            />
+                                        ) : (
+                                            <span
+                                                style={{
+                                                    fontSize: 11,
+                                                    color: "#bbbbbb",
+                                                }}
+                                            >
+                                                完成イメージがここに表示されます
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </main>
         );
-    }
+    };
 
-    /* ======== PC用レイアウト（2カラム） ======== */
     return (
-        <main
-            style={{
-                minHeight: "100vh",
-                padding: "40px 24px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "flex-start",
-                background:
-                    "radial-gradient(circle at 0% 0%, #fef3c7 0, #f5f5f5 40%, #e5e7eb 100%)",
-            }}
-        >
-            <div style={{ width: "100%", maxWidth: 1120, display: "flex", flexDirection: "column", gap: 24 }}>
-                <Header />
-
-                <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 360px) minmax(0, 1fr)", gap: 24, alignItems: "stretch" }}>
-                    {/* Left Panel */}
-                    <section
-                        style={{
-                            backgroundColor: "rgba(255, 255, 255, 0.9)",
-                            backdropFilter: "blur(10px)",
-                            padding: "20px 20px 18px",
-                            borderRadius: 18,
-                            boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-                            border: "1px solid rgba(148, 163, 184, 0.25)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 18,
-                        }}
-                    >
-                        {/* Step 1 */}
-                        <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#9ca3af", marginBottom: 4 }}>
-                                {t("step")} 1
-                            </div>
-                            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t("step1")}</h2>
-                            <label
-                                style={{
-                                    display: "block",
-                                    padding: "14px 14px",
-                                    borderRadius: 14,
-                                    border: "1px dashed #d1d5db",
-                                    background:
-                                        "repeating-linear-gradient(135deg, #f9fafb, #f9fafb 10px, #f3f4f6 10px, #f3f4f6 20px)",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{t("chooseImage")}</div>
-                                <div style={{ fontSize: 11, color: "#6b7280" }}>{t("step1_hint")}</div>
-                                <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
-                            </label>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#9ca3af", marginBottom: 4 }}>
-                                {t("step")} 2
-                            </div>
-                            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t("step2")}</h2>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                                {FRAMES.map((frame) => (
-                                    <button
-                                        key={frame.id}
-                                        type="button"
-                                        onClick={() => setSelectedFrame(frame)}
-                                        style={{
-                                            borderRadius: 14,
-                                            padding: 6,
-                                            border: selectedFrame?.id === frame.id ? "2px solid #0ea5e9" : "1px solid #e5e7eb",
-                                            backgroundColor: selectedFrame?.id === frame.id ? "rgba(14,165,233,0.06)" : "#f9fafb",
-                                            cursor: "pointer",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "stretch",
-                                            width: "100%",
-                                        }}
-                                    >
-                                        <div style={{ width: "100%", borderRadius: 10, overflow: "hidden", backgroundColor: "#e5e7eb" }}>
-                                            <img src={frame.src} alt={t(frame.labelKey)} style={{ width: "100%", height: "auto", display: "block" }} />
-                                        </div>
-                                        <span style={{ fontSize: 12, fontWeight: 500, marginTop: 6, textAlign: "left" }}>
-                                            {t(frame.labelKey)}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#9ca3af", marginBottom: 4 }}>
-                                {t("step")} 3
-                            </div>
-                            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{t("step3_pc_title")}</h2>
-                            <button
-                                type="button"
-                                onClick={handleDownload}
-                                disabled={!canDownload}
-                                style={{
-                                    width: "100%",
-                                    padding: "10px 18px",
-                                    borderRadius: 999,
-                                    border: "none",
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    cursor: canDownload ? "pointer" : "not-allowed",
-                                    backgroundColor: canDownload ? "#0f766e" : "#d1d5db",
-                                    color: "#ffffff",
-                                    boxShadow: canDownload ? "0 10px 25px rgba(15,118,110,0.35)" : "none",
-                                }}
-                            >
-                                {isDrawing ? t("btn_downloading") : t("btn_download_ready_pc")}
-                            </button>
-                            <p style={{ marginTop: 6, fontSize: 11, color: "#6b7280" }}>{t("output_format")}</p>
-                        </div>
-                    </section>
-
-                    {/* Right: Preview */}
-                    <section
-                        style={{
-                            backgroundColor: "rgba(255, 255, 255, 0.9)",
-                            backdropFilter: "blur(10px)",
-                            padding: 20,
-                            borderRadius: 18,
-                            boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-                            border: "1px solid rgba(148, 163, 184, 0.25)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 14,
-                        }}
-                    >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                            <div>
-                                <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 2 }}>Preview</h2>
-                                <p style={{ fontSize: 12, color: "#6b7280" }}>{t("step3_desc_pc")}</p>
-                            </div>
-                            {selectedFrame && (
-                                <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                                    {t("using_frame")}
-                                    {t(selectedFrame.labelKey)}
-                                </span>
-                            )}
-                        </div>
-
-                        <div
-                            style={{
-                                flex: 1,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                background:
-                                    "linear-gradient(135deg, #f9fafb 0, #eef2ff 50%, #e0f2fe 100%)",
-                                borderRadius: 14,
-                                padding: 12,
-                            }}
-                        >
-                            <canvas
-                                ref={canvasRef}
-                                onPointerDown={handlePointerDown}
-                                onPointerMove={handlePointerMove}
-                                onPointerUp={endDrag}
-                                onPointerCancel={endDrag}
-                                style={{
-                                    maxWidth: "100%",
-                                    maxHeight: "80vh",
-                                    borderRadius: 12,
-                                    boxShadow: "0 12px 30px rgba(15,23,42,0.25)",
-                                    backgroundColor: "#f3f4f6",
-                                    touchAction: "none",
-                                    cursor: photoUrl ? "grab" : "default",
-                                }}
-                            />
-                        </div>
-
-                        {!photoUrl && (
-                            <p style={{ fontSize: 12, color: "#9ca3af", textAlign: "center" }}>{t("no_photo_pc")}</p>
-                        )}
-                    </section>
-                </div>
-
-                <footer style={{ paddingTop: 8, textAlign: "center", fontSize: 10, color: "#9ca3af" }}>{t("footer")}</footer>
-            </div>
-        </main>
+        <>
+            {isMobile ? renderMobile() : renderDesktop()}
+            <MenuOverlay />
+        </>
     );
 }
