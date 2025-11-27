@@ -108,59 +108,72 @@ export default function FrameGeneratorPage() {
                                     position: "relative",
                                 }}
                             >
-                                {/* ラベル（丸の上） */}
+                                {/* ラベル（線から少し距離を空ける用に marginBottom を大きめに） */}
                                 <div
                                     style={{
                                         fontSize: 9,
-                                        marginBottom: 4,
+                                        marginBottom: 10, // ← ここを大きくして文字と線の間を広げる
                                         color: active ? "#e0f2fe" : "#9ca3af",
                                         fontWeight: active ? 700 : 500,
+                                        textAlign: "center",
                                     }}
                                 >
                                     {s.label}
                                 </div>
 
-                                {/* 線 */}
-                                {index < stepsMeta.length - 1 && (
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            top: 15,
-                                            left: "50%",
-                                            width: "100%",
-                                            transform: "translateX(0)",
-                                            zIndex: 0,
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                height: 2,
-                                                marginLeft: "50%",
-                                                marginRight: "-50%",
-                                                background:
-                                                    index < currentIndex
-                                                        ? "linear-gradient(to right,#0ea5e9,#38bdf8)"
-                                                        : "#374151",
-                                                opacity: index < currentIndex ? 1 : 0.6,
-                                            }}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* 丸 */}
+                                {/* 丸＋線をまとめるコンテナ */}
                                 <div
                                     style={{
-                                        width: 18,
-                                        height: 18,
-                                        borderRadius: "50%",
-                                        zIndex: 1,
-                                        border: active ? "0" : "2px solid #4b5563",
-                                        backgroundColor: active ? "#0ea5e9" : "#000000",
-                                        boxShadow: active
-                                            ? "0 0 0 2px rgba(56,189,248,0.4)"
-                                            : "0 0 0 0 transparent",
+                                        position: "relative",
+                                        width: "100%",
+                                        height: 30, // 丸＋線の高さ（ここを調整で余白感も変えられる）
+                                        display: "flex",
+                                        alignItems: "center", // 丸を縦方向で線の中心に揃える
+                                        justifyContent: "center",
                                     }}
-                                />
+                                >
+                                    {/* ベースの線（このステップから次のステップの間） */}
+                                    {index < stepsMeta.length - 1 && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "50%", // コンテナの縦中央
+                                                left: "50%",
+                                                width: "100%",
+                                                transform: "translate(-50%, -50%)",
+                                                zIndex: 0,
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    height: 2,
+                                                    marginLeft: "50%",
+                                                    marginRight: "-50%",
+                                                    background:
+                                                        index < currentIndex
+                                                            ? "linear-gradient(to right,#0ea5e9,#38bdf8)"
+                                                            : "#374151",
+                                                    opacity: index < currentIndex ? 1 : 0.6,
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* 丸（線の中心にピッタリ乗る） */}
+                                    <div
+                                        style={{
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: "50%",
+                                            zIndex: 1,
+                                            border: active ? "0" : "2px solid #4b5563",
+                                            backgroundColor: active ? "#0ea5e9" : "#000000",
+                                            boxShadow: active
+                                                ? "0 0 0 2px rgba(56,189,248,0.4)"
+                                                : "0 0 0 0 transparent",
+                                        }}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
@@ -168,6 +181,7 @@ export default function FrameGeneratorPage() {
             </div>
         );
     };
+
 
     /* ===== 上部ヘッダー（ロゴ＋ハンバーガー） ===== */
     const TopHeader: React.FC = () => (
@@ -205,6 +219,7 @@ export default function FrameGeneratorPage() {
             </button>
 
             {/* ハンバーガー */}
+            {/* ハンバーガー */}
             <button
                 type="button"
                 onClick={() => setMenuOpen(true)}
@@ -221,28 +236,20 @@ export default function FrameGeneratorPage() {
                 }}
                 aria-label="Open menu"
             >
-                <span
-                    style={{
-                        display: "block",
-                        height: 2,
-                        backgroundColor: "#ffffff",
-                    }}
-                />
-                <span
-                    style={{
-                        display: "block",
-                        height: 2,
-                        backgroundColor: "#ffffff",
-                    }}
-                />
-                <span
-                    style={{
-                        display: "block",
-                        height: 2,
-                        backgroundColor: "#ffffff",
-                    }}
-                />
+                {[0, 1, 2].map((_, i) => (
+                    <span
+                        key={i}
+                        style={{
+                            display: "block",
+                            height: 2,
+                            width: "100%",              // ← これ追加
+                            backgroundColor: "#ffffff", // ← 完全な白
+                            opacity: 1,                 // ← 念のため
+                        }}
+                    />
+                ))}
             </button>
+
         </header>
     );
 
@@ -595,7 +602,6 @@ export default function FrameGeneratorPage() {
                                     <span>ここに選択した画像が表示される</span>
                                 )}
                             </div>
-
                             <label
                                 style={{
                                     display: "inline-block",
@@ -604,6 +610,7 @@ export default function FrameGeneratorPage() {
                                     border: "1px solid #ffffff",
                                     fontSize: 9,
                                     cursor: "pointer",
+                                    marginRight: 8,
                                 }}
                             >
                                 画像ファイルを選択
@@ -614,6 +621,30 @@ export default function FrameGeneratorPage() {
                                     style={{ display: "none" }}
                                 />
                             </label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // 画像が選ばれているときだけ次へ進むようにするなら:
+                                    if (photoUrl) {
+                                        setStep("adjust");
+                                    } else {
+                                        alert("先に画像ファイルを選択してください。");
+                                    }
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: "4px 10px",
+                                    borderRadius: 999,
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#000000",
+                                    color: "#ffffff",
+                                    fontSize: 10,
+                                    cursor: "pointer",
+                                    marginRight: 8,
+                                }}
+                            >
+                                次へ（adjust）
+                            </button>
                         </section>
                     )}
 
@@ -933,6 +964,24 @@ export default function FrameGeneratorPage() {
                                             JPEG / PNG などの画像ファイルを選択してください。
                                             選択した画像はブラウザ内だけで処理され、サーバには送信されません。
                                         </p>
+                                        <label
+                                            style={{
+                                                display: "inline-block",
+                                                padding: "6px 14px",
+                                                borderRadius: 999,
+                                                border: "1px solid #ffffff",
+                                                fontSize: 11,
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            画像ファイルを選択
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                style={{ display: "none" }}
+                                            />
+                                        </label>
                                         <label
                                             style={{
                                                 display: "inline-block",
