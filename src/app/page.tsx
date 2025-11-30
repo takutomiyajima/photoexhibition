@@ -395,7 +395,7 @@ export default function Page() {
       lang === "ja"
         ? "下にスクロール／スワイプで詳細へ"
         : "Scroll down for details",
-    menuAbout: lang === "ja" ? "About us" : "About us",
+    menuAbout: lang === "ja" ? "Home" : "Home",
     menuAdGen: lang === "ja" ? "広告ジェネレータ" : "Ad Generator",
     menuClose: lang === "ja" ? "閉じる" : "Close",
     swipeUpBack:
@@ -612,7 +612,7 @@ export default function Page() {
                 className="text-2xl md:text-3xl tracking-wide hover:text-white/60 transition"
                 onClick={() => {
                   setMenuOpen(false);
-                  router.push("/about");
+                  router.push("/");
                 }}
               >
                 {text.menuAbout}
