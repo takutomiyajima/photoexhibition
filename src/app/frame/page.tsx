@@ -217,8 +217,6 @@ export default function FrameGeneratorPage() {
                     style={{ height: 40, width: "auto" }} // ★ 少し大きめ
                 />
             </button>
-
-            {/* ハンバーガー */}
             {/* ハンバーガー */}
             <button
                 type="button"
@@ -478,10 +476,10 @@ export default function FrameGeneratorPage() {
                             className="text-2xl md:text-3xl tracking-wide text-white hover:text-white/60 transition"
                             onClick={() => {
                                 setMenuOpen(false);
-                                router.push("/about");
+                                router.push("/");
                             }}
                         >
-                            About Us
+                            Home
                         </button>
 
                         {/* 広告ジェネレータ → /frame */}
