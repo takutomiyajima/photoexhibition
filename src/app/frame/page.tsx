@@ -112,7 +112,7 @@ export default function FrameGeneratorPage() {
                                 <div
                                     style={{
                                         fontSize: 9,
-                                        marginBottom: 10, // ← ここを大きくして文字と線の間を広げる
+                                        marginBottom: 10,
                                         color: active ? "#e0f2fe" : "#9ca3af",
                                         fontWeight: active ? 700 : 500,
                                         textAlign: "center",
@@ -126,9 +126,9 @@ export default function FrameGeneratorPage() {
                                     style={{
                                         position: "relative",
                                         width: "100%",
-                                        height: 30, // 丸＋線の高さ（ここを調整で余白感も変えられる）
+                                        height: 30,
                                         display: "flex",
-                                        alignItems: "center", // 丸を縦方向で線の中心に揃える
+                                        alignItems: "center",
                                         justifyContent: "center",
                                     }}
                                 >
@@ -137,7 +137,7 @@ export default function FrameGeneratorPage() {
                                         <div
                                             style={{
                                                 position: "absolute",
-                                                top: "50%", // コンテナの縦中央
+                                                top: "50%",
                                                 left: "50%",
                                                 width: "100%",
                                                 transform: "translate(-50%, -50%)",
@@ -181,7 +181,6 @@ export default function FrameGeneratorPage() {
             </div>
         );
     };
-
 
     /* ===== 上部ヘッダー（ロゴ＋ハンバーガー） ===== */
     const TopHeader: React.FC = () => (
@@ -240,14 +239,13 @@ export default function FrameGeneratorPage() {
                         style={{
                             display: "block",
                             height: 2,
-                            width: "100%",              // ← これ追加
-                            backgroundColor: "#ffffff", // ← 完全な白
-                            opacity: 1,                 // ← 念のため
+                            width: "100%",
+                            backgroundColor: "#ffffff", // 完全な白
+                            opacity: 1,
                         }}
                     />
                 ))}
             </button>
-
         </header>
     );
 
@@ -405,22 +403,15 @@ export default function FrameGeneratorPage() {
         }
     };
 
+    // ★ finalUrl ベースのダウンロード（モバイル Done で canvas がない問題を回避）
     const handleDownload = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        canvas.toBlob(
-            (blob) => {
-                if (!blob) return;
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "framed_photo.png";
-                a.click();
-                URL.revokeObjectURL(url);
-            },
-            "image/png",
-            1.0
-        );
+        if (!finalUrl) return;
+        const a = document.createElement("a");
+        a.href = finalUrl;
+        a.download = "framed_photo.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     const handleReset = () => {
@@ -432,7 +423,8 @@ export default function FrameGeneratorPage() {
         setStep("upload");
     };
 
-    const canDownload = !!photoUrl && isLoaded && !isDrawing;
+    // ★ finalUrl ができていて、描画中でなければダウンロード可能
+    const canDownload = !!finalUrl && !isDrawing;
 
     /* ===== メニューオーバーレイ（AnimatePresence） ===== */
     const MenuOverlay: React.FC = () => (
@@ -622,7 +614,6 @@ export default function FrameGeneratorPage() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // 画像が選ばれているときだけ次へ進むようにするなら:
                                     if (photoUrl) {
                                         setStep("adjust");
                                     } else {
@@ -645,7 +636,6 @@ export default function FrameGeneratorPage() {
                             </button>
                         </section>
                     )}
-
 
                     {/* Step2: Adjust */}
                     {step === "adjust" && (
@@ -804,7 +794,7 @@ export default function FrameGeneratorPage() {
                             <div
                                 style={{
                                     display: "flex",
-                                    justifyContent: "space_between",
+                                    justifyContent: "space-between", // ★ typo 修正
                                     gap: 8,
                                     marginBottom: 6,
                                 }}
@@ -965,7 +955,6 @@ export default function FrameGeneratorPage() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                // 画像が選ばれているときだけ次へ進むようにするなら:
                                                 if (photoUrl) {
                                                     setStep("adjust");
                                                 } else {
@@ -1205,8 +1194,6 @@ export default function FrameGeneratorPage() {
                                         />
                                     </div>
                                 </div>
-
-
                             </div>
                         </div>
                     </section>
