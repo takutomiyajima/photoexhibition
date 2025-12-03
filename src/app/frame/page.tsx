@@ -57,6 +57,9 @@ export default function FrameGeneratorPage() {
     // 完成画像 dataURL
     const [finalUrl, setFinalUrl] = useState<string | null>(null);
 
+    // iPhone 用「保存方法説明ページ」フラグ
+    const [iosSaveMode, setIosSaveMode] = useState(false);
+
     const dragStateRef = useRef<{
         dragging: boolean;
         startX: number;
@@ -64,6 +67,11 @@ export default function FrameGeneratorPage() {
         startOffsetX: number;
         startOffsetY: number;
     } | null>(null);
+
+    // iOS 判定
+    const isIOS =
+        typeof navigator !== "undefined" &&
+        /iP(hone|od|ad)/.test(navigator.userAgent);
 
     // objectURL クリーンアップ
     useEffect(() => {
@@ -108,7 +116,7 @@ export default function FrameGeneratorPage() {
                                     position: "relative",
                                 }}
                             >
-                                {/* ラベル（線から少し距離を空ける用に marginBottom を大きめに） */}
+                                {/* ラベル */}
                                 <div
                                     style={{
                                         fontSize: 9,
@@ -121,7 +129,7 @@ export default function FrameGeneratorPage() {
                                     {s.label}
                                 </div>
 
-                                {/* 丸＋線をまとめるコンテナ */}
+                                {/* 丸＋線 */}
                                 <div
                                     style={{
                                         position: "relative",
@@ -132,7 +140,6 @@ export default function FrameGeneratorPage() {
                                         justifyContent: "center",
                                     }}
                                 >
-                                    {/* ベースの線（このステップから次のステップの間） */}
                                     {index < stepsMeta.length - 1 && (
                                         <div
                                             style={{
@@ -159,7 +166,6 @@ export default function FrameGeneratorPage() {
                                         </div>
                                     )}
 
-                                    {/* 丸（線の中心にピッタリ乗る） */}
                                     <div
                                         style={{
                                             width: 18,
@@ -213,7 +219,7 @@ export default function FrameGeneratorPage() {
                 <img
                     src="/logo/kettei_3.png"
                     alt="冒険 Through the Lens of Adventure"
-                    style={{ height: 40, width: "auto" }} // ★ 少し大きめ
+                    style={{ height: 40, width: "auto" }}
                 />
             </button>
             {/* ハンバーガー */}
@@ -240,7 +246,7 @@ export default function FrameGeneratorPage() {
                             display: "block",
                             height: 2,
                             width: "100%",
-                            backgroundColor: "#ffffff", // 完全な白
+                            backgroundColor: "#ffffff",
                             opacity: 1,
                         }}
                     />
@@ -351,7 +357,6 @@ export default function FrameGeneratorPage() {
         }
     };
 
-    // step も依存に入れて、画面切り替え時にも再描画
     useEffect(() => {
         if (!isLoaded) return;
         draw();
@@ -366,7 +371,7 @@ export default function FrameGeneratorPage() {
         const url = URL.createObjectURL(file);
         setPhotoUrl(url);
         setFinalUrl(null);
-        setStep("adjust"); // 画像選択したらすぐ Adjust へ
+        setStep("adjust");
     };
 
     const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -403,9 +408,19 @@ export default function FrameGeneratorPage() {
         }
     };
 
-    // ★ finalUrl ベースのダウンロード（モバイル Done で canvas がない問題を回避）
+    // ★ iPhone のときだけ「保存ガイドページ」に切り替える
     const handleDownload = () => {
         if (!finalUrl) return;
+        if (typeof window === "undefined") return;
+
+        if (isIOS) {
+            // iPhone：専用ページに切り替え
+            setIosSaveMode(true);
+            window.scrollTo(0, 0);
+            return;
+        }
+
+        // PC / Android：普通に download 属性で保存
         const a = document.createElement("a");
         a.href = finalUrl;
         a.download = "framed_photo.png";
@@ -421,12 +436,12 @@ export default function FrameGeneratorPage() {
         setIsLoaded(false);
         setFinalUrl(null);
         setStep("upload");
+        setIosSaveMode(false);
     };
 
-    // ★ finalUrl ができていて、描画中でなければダウンロード可能
     const canDownload = !!finalUrl && !isDrawing;
 
-    /* ===== メニューオーバーレイ（AnimatePresence） ===== */
+    /* ===== メニューオーバーレイ ===== */
     const MenuOverlay: React.FC = () => (
         <AnimatePresence>
             {menuOpen && (
@@ -437,7 +452,6 @@ export default function FrameGeneratorPage() {
                     exit={{ opacity: 0 }}
                 >
                     <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                        {/* ロゴ：押したら / に戻る */}
                         <button
                             type="button"
                             onClick={() => {
@@ -449,7 +463,7 @@ export default function FrameGeneratorPage() {
                             <img
                                 src="/logo/kettei_3.png"
                                 alt="冒険 Through the Lens of Adventure"
-                                className="h-12 w-auto md:h-16" // ★ 大きめ
+                                className="h-12 w-auto md:h-16"
                             />
                         </button>
 
@@ -461,9 +475,7 @@ export default function FrameGeneratorPage() {
                         </button>
                     </div>
 
-                    {/* メニュー項目 */}
                     <div className="flex-1 flex flex-col items-center justify-center gap-10 text-center">
-                        {/* About Us */}
                         <button
                             className="text-2xl md:text-3xl tracking-wide text-white hover:text-white/60 transition"
                             onClick={() => {
@@ -474,7 +486,6 @@ export default function FrameGeneratorPage() {
                             Home
                         </button>
 
-                        {/* 広告ジェネレータ → /frame */}
                         <button
                             className="text-2xl md:text-3xl tracking-wide text-white hover:text-white/60 transition"
                             onClick={() => {
@@ -494,6 +505,151 @@ export default function FrameGeneratorPage() {
         </AnimatePresence>
     );
 
+    /* ======== iPhone 用：保存ガイドページ ======== */
+    if (iosSaveMode && finalUrl) {
+        return (
+            <>
+                <main
+                    style={{
+                        minHeight: "100vh",
+                        backgroundColor: "#000000",
+                        color: "#ffffff",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "flex-start",
+                        padding: 16,
+                    }}
+                >
+                    <div
+                        style={{
+                            width: "100%",
+                            maxWidth: 480,
+                        }}
+                    >
+                        <TopHeader />
+
+                        <section style={{ padding: "12px 4px 8px" }}>
+                            <h1
+                                style={{
+                                    fontSize: 16,
+                                    fontWeight: 700,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                画像の保存方法（iPhone）
+                            </h1>
+                            <p
+                                style={{
+                                    fontSize: 12,
+                                    color: "#e5e7eb",
+                                    lineHeight: 1.6,
+                                    marginBottom: 12,
+                                }}
+                            >
+                                下に表示されている画像を保存するには、次の手順を行ってください。
+                            </p>
+
+                            <ol
+                                style={{
+                                    fontSize: 12,
+                                    color: "#d1d5db",
+                                    lineHeight: 1.6,
+                                    paddingLeft: 18,
+                                    marginBottom: 16,
+                                }}
+                            >
+                                <li>画面下（または上）の「共有ボタン」をタップします。</li>
+                                <li>表示されたメニューから「画像を保存」または「写真に保存」を選択します。</li>
+                                <li>写真アプリを開き、保存された画像を確認できます。</li>
+                            </ol>
+                        </section>
+
+                        <section
+                            style={{
+                                border: "1px solid #ffffff",
+                                backgroundColor: "#111111",
+                                padding: 8,
+                                borderRadius: 8,
+                                marginBottom: 16,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    width: "100%",
+                                    backgroundColor: "#000000",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <img
+                                    src={finalUrl}
+                                    alt="保存する画像"
+                                    style={{
+                                        width: "100%",
+                                        height: "auto",
+                                        objectFit: "contain",
+                                    }}
+                                />
+                            </div>
+                        </section>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 8,
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setIosSaveMode(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: "8px 0",
+                                    borderRadius: 999,
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#000000",
+                                    color: "#ffffff",
+                                    fontSize: 12,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                戻る（編集画面に戻る）
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                style={{
+                                    flex: 1,
+                                    padding: "8px 0",
+                                    borderRadius: 999,
+                                    border: "1px solid #ffffff",
+                                    backgroundColor: "#111827",
+                                    color: "#ffffff",
+                                    fontSize: 12,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                最初から作り直す
+                            </button>
+                        </div>
+
+                        <p
+                            style={{
+                                fontSize: 11,
+                                color: "#9ca3af",
+                                marginTop: 10,
+                            }}
+                        >
+                            ※このページは iPhone 用のガイドです。画像の保存は、共有メニューから行ってください。
+                        </p>
+                    </div>
+                </main>
+                <MenuOverlay />
+            </>
+        );
+    }
+
     /* ======== モバイルレイアウト ======== */
     const renderMobile = () => {
         const phoneWidth = "100%";
@@ -502,7 +658,7 @@ export default function FrameGeneratorPage() {
             <main
                 style={{
                     minHeight: "100vh",
-                    backgroundColor: "#000000", // ★ 背景を全て黒に
+                    backgroundColor: "#000000",
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "flex-start",
@@ -549,7 +705,7 @@ export default function FrameGeneratorPage() {
                         </p>
                     </section>
 
-                    {/* 青いステップバー */}
+                    {/* ステップバー */}
                     <StepIndicator current={step} />
 
                     {/* Step1: Upload */}
@@ -794,7 +950,7 @@ export default function FrameGeneratorPage() {
                             <div
                                 style={{
                                     display: "flex",
-                                    justifyContent: "space-between", // ★ typo 修正
+                                    justifyContent: "space-between",
                                     gap: 8,
                                     marginBottom: 6,
                                 }}
@@ -1156,9 +1312,8 @@ export default function FrameGeneratorPage() {
                                 )}
                             </div>
 
-                            {/* 右：プレビュー */}
+                            {/* 右：プレビュー（キャンバス） */}
                             <div>
-                                {/* 上：キャンバス */}
                                 <div
                                     style={{
                                         border: "1px solid #ffffff",
