@@ -538,16 +538,6 @@ export default function FrameGeneratorPage() {
                             >
                                 画像の保存方法（iPhone）
                             </h1>
-                            <p
-                                style={{
-                                    fontSize: 12,
-                                    color: "#e5e7eb",
-                                    lineHeight: 1.6,
-                                    marginBottom: 12,
-                                }}
-                            >
-                                下に表示されている画像を保存するには、次の手順を行ってください。
-                            </p>
 
                             <ol
                                 style={{
@@ -558,9 +548,9 @@ export default function FrameGeneratorPage() {
                                     marginBottom: 16,
                                 }}
                             >
-                                <li>画面下（または上）の「共有ボタン」をタップします。</li>
-                                <li>表示されたメニューから「画像を保存」または「写真に保存」を選択します。</li>
-                                <li>写真アプリを開き、保存された画像を確認できます。</li>
+                                <li>①画像を長押し</li>
+                                <li>②「画像を保存」または「写真に保存」を選択</li>
+                                <li>③ダウンロード完了！</li>
                             </ol>
                         </section>
 
