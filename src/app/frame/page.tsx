@@ -4,16 +4,48 @@ import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-type Frame = { id: string; src: string; label: string };
-
-const FRAME: Frame = {
-    id: "frame1",
-    src: "/frames/frame1.png", // ★ 自分のフレーム画像パス
-    label: "冒険フレーム",
+type Frame = {
+    id: string;
+    src: string;
+    label: string;
+    innerX: number;
+    innerY: number;
+    innerWidth: number;
+    innerHeight: number;
 };
 
+const FRAMES: Frame[] = [
+    {
+        id: "frame1",
+        src: "/frames/frame1.png",
+        label: "冒険フレーム A",
+        innerX: 41,
+        innerY: 41,
+        innerWidth: 998,
+        innerHeight: 1009,
+    },
+    {
+        id: "frame2",
+        src: "/frames/frame2.png",
+        label: "冒険フレーム B",
+        innerX: 41,
+        innerY: 41,
+        innerWidth: 998,
+        innerHeight: 1009,
+    },
+    {
+        id: "frame3",
+        src: "/frames/frame3.png",
+        label: "冒険フレーム C",
+        innerX: 41,
+        innerY: 41,
+        innerWidth: 998,
+        innerHeight: 1009,
+    },
+];
+
 type Offset = { x: number; y: number };
-type Step = "upload" | "adjust" | "done";
+type Step = "upload" | "frame" | "adjust" | "done";
 
 function useIsMobile(breakpoint = 768): boolean {
     const [isMobile, setIsMobile] = useState(false);
@@ -44,20 +76,25 @@ export default function FrameGeneratorPage() {
     const [step, setStep] = useState<Step>("upload");
     const [menuOpen, setMenuOpen] = useState(false);
 
+    const [selectedFrameId, setSelectedFrameId] = useState<string>(FRAMES[0].id);
+    const selectedFrame = FRAMES.find((f) => f.id === selectedFrameId)!;
+
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const photoImageRef = useRef<HTMLImageElement | null>(null);
     const frameImageRef = useRef<HTMLImageElement | null>(null);
 
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+    // 表示用の offset（ドラッグ終了時にのみ更新）
     const [photoOffset, setPhotoOffset] = useState<Offset>({ x: 0, y: 0 });
+    // 実際のドラッグ中の offset（ぬるぬる用）
+    const photoOffsetRef = useRef<Offset>({ x: 0, y: 0 });
 
     const [isLoaded, setIsLoaded] = useState(false);
     const [isDrawing, setIsDrawing] = useState(false);
 
-    // 完成画像 dataURL
     const [finalUrl, setFinalUrl] = useState<string | null>(null);
 
-    // iPhone 用「保存方法説明ページ」フラグ
     const [iosSaveMode, setIosSaveMode] = useState(false);
 
     const dragStateRef = useRef<{
@@ -68,7 +105,6 @@ export default function FrameGeneratorPage() {
         startOffsetY: number;
     } | null>(null);
 
-    // iOS 判定
     const isIOS =
         typeof navigator !== "undefined" &&
         /iP(hone|od|ad)/.test(navigator.userAgent);
@@ -80,9 +116,10 @@ export default function FrameGeneratorPage() {
         };
     }, [photoUrl]);
 
-    /* ===== ステップインジケータ（青いバー＋丸） ===== */
+    /* ===== ステップインジケータ ===== */
     const stepsMeta: { id: Step; label: string }[] = [
         { id: "upload", label: "Upload" },
+        { id: "frame", label: "Frame" },
         { id: "adjust", label: "Adjust" },
         { id: "done", label: "Done" },
     ];
@@ -116,7 +153,6 @@ export default function FrameGeneratorPage() {
                                     position: "relative",
                                 }}
                             >
-                                {/* ラベル */}
                                 <div
                                     style={{
                                         fontSize: 9,
@@ -129,7 +165,6 @@ export default function FrameGeneratorPage() {
                                     {s.label}
                                 </div>
 
-                                {/* 丸＋線 */}
                                 <div
                                     style={{
                                         position: "relative",
@@ -188,7 +223,7 @@ export default function FrameGeneratorPage() {
         );
     };
 
-    /* ===== 上部ヘッダー（ロゴ＋ハンバーガー） ===== */
+    /* ===== ヘッダー ===== */
     const TopHeader: React.FC = () => (
         <header
             style={{
@@ -200,7 +235,6 @@ export default function FrameGeneratorPage() {
                 borderBottom: "1px solid #333333",
             }}
         >
-            {/* ロゴ：クリックでトップへ */}
             <button
                 type="button"
                 onClick={() => {
@@ -222,7 +256,7 @@ export default function FrameGeneratorPage() {
                     style={{ height: 40, width: "auto" }}
                 />
             </button>
-            {/* ハンバーガー */}
+
             <button
                 type="button"
                 onClick={() => setMenuOpen(true)}
@@ -255,6 +289,99 @@ export default function FrameGeneratorPage() {
         </header>
     );
 
+    /* ===== フレーム選択 UI（Frame ステップで使う） ===== */
+    const FrameSelector: React.FC = () => {
+        return (
+            <div
+                style={{
+                    marginTop: 6,
+                    marginBottom: 6,
+                }}
+            >
+                <div
+                    style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        marginBottom: 4,
+                    }}
+                >
+                    フレームを選択
+                </div>
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                    }}
+                >
+                    {FRAMES.map((frame) => {
+                        const active = frame.id === selectedFrameId;
+                        return (
+                            <button
+                                key={frame.id}
+                                type="button"
+                                onClick={() => {
+                                    setSelectedFrameId(frame.id);
+                                    // 必要ならここで photoOffsetRef をリセット
+                                    // photoOffsetRef.current = { x: 0, y: 0 };
+                                    // setPhotoOffset({ x: 0, y: 0 });
+                                }}
+                                style={{
+                                    flex: "1 1 0",
+                                    minWidth: 0,
+                                    padding: 4,
+                                    borderRadius: 8,
+                                    border: active
+                                        ? "1px solid #38bdf8"
+                                        : "1px solid #4b5563",
+                                    backgroundColor: active ? "#0b1120" : "#020617",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: 4,
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: "100%",
+                                        aspectRatio: "4 / 5",
+                                        backgroundColor: "#111827",
+                                        overflow: "hidden",
+                                        borderRadius: 6,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <img
+                                        src={frame.src}
+                                        alt={frame.label}
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                            opacity: active ? 1 : 0.8,
+                                        }}
+                                    />
+                                </div>
+                                <span
+                                    style={{
+                                        fontSize: 9,
+                                        color: active ? "#e0f2fe" : "#9ca3af",
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {frame.label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     /* ===== 画像読み込み ===== */
     useEffect(() => {
         if (!photoUrl) {
@@ -280,12 +407,14 @@ export default function FrameGeneratorPage() {
             try {
                 const [photoImg, frameImg] = await Promise.all([
                     loadImage(photoUrl),
-                    loadImage(FRAME.src),
+                    loadImage(selectedFrame.src),
                 ]);
                 if (cancelled) return;
                 photoImageRef.current = photoImg;
                 frameImageRef.current = frameImg;
-                setPhotoOffset({ x: 0, y: 0 });
+                const initOffset = { x: 0, y: 0 };
+                photoOffsetRef.current = initOffset;
+                setPhotoOffset(initOffset);
                 setIsLoaded(true);
             } catch (e) {
                 console.error(e);
@@ -299,10 +428,10 @@ export default function FrameGeneratorPage() {
         return () => {
             cancelled = true;
         };
-    }, [photoUrl]);
+    }, [photoUrl, selectedFrame]);
 
-    /* ===== 実比で描画（縦長フレーム前提） ===== */
-    const draw = () => {
+    /* ===== 描画（オプションで offset を指定） ===== */
+    const draw = (offsetOverride?: Offset) => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
         const photoImg = photoImageRef.current;
@@ -316,21 +445,15 @@ export default function FrameGeneratorPage() {
         canvas.height = frameHeight;
         ctx.clearRect(0, 0, frameWidth, frameHeight);
 
-        // 1. フレーム
         ctx.drawImage(frameImg, 0, 0, frameWidth, frameHeight);
 
-        // 2. フレーム内の写真領域（frame1 に合わせた値）
-        const innerX = 41;
-        const innerY = 41;
-        const innerWidth = 998;
-        const innerHeight = 1009;
+        const { innerX, innerY, innerWidth, innerHeight } = selectedFrame;
 
         ctx.save();
         ctx.beginPath();
         ctx.rect(innerX, innerY, innerWidth, innerHeight);
         ctx.clip();
 
-        // cover fit
         const scale = Math.max(
             innerWidth / photoImg.width,
             innerHeight / photoImg.height
@@ -341,14 +464,14 @@ export default function FrameGeneratorPage() {
         const baseX = innerX + (innerWidth - drawWidth) / 2;
         const baseY = innerY + (innerHeight - drawHeight) / 2;
 
-        const offsetX = baseX + photoOffset.x;
-        const offsetY = baseY + photoOffset.y;
+        const offset = offsetOverride ?? photoOffsetRef.current;
+        const offsetX = baseX + offset.x;
+        const offsetY = baseY + offset.y;
 
         ctx.drawImage(photoImg, offsetX, offsetY, drawWidth, drawHeight);
 
         ctx.restore();
 
-        // 完成品 dataURL を state に保存
         try {
             const dataUrl = canvas.toDataURL("image/png");
             setFinalUrl(dataUrl);
@@ -357,11 +480,12 @@ export default function FrameGeneratorPage() {
         }
     };
 
+    // state が変わったとき / ステップやフレームが変わったとき再描画
     useEffect(() => {
         if (!isLoaded) return;
         draw();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLoaded, photoOffset, step]);
+    }, [isLoaded, step, selectedFrame, photoOffset]);
 
     /* ===== ハンドラ ===== */
 
@@ -371,7 +495,7 @@ export default function FrameGeneratorPage() {
         const url = URL.createObjectURL(file);
         setPhotoUrl(url);
         setFinalUrl(null);
-        setStep("adjust");
+        setStep("frame"); // 画像選択後は Frame ステップへ
     };
 
     const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -383,8 +507,8 @@ export default function FrameGeneratorPage() {
             dragging: true,
             startX: e.clientX,
             startY: e.clientY,
-            startOffsetX: photoOffset.x,
-            startOffsetY: photoOffset.y,
+            startOffsetX: photoOffsetRef.current.x,
+            startOffsetY: photoOffsetRef.current.y,
         };
     };
 
@@ -393,7 +517,13 @@ export default function FrameGeneratorPage() {
         if (!st || !st.dragging) return;
         const dx = e.clientX - st.startX;
         const dy = e.clientY - st.startY;
-        setPhotoOffset({ x: st.startOffsetX + dx, y: st.startOffsetY + dy });
+        const newOffset: Offset = {
+            x: st.startOffsetX + dx,
+            y: st.startOffsetY + dy,
+        };
+        // state に入れず、ref + 直接 draw でぬるぬる
+        photoOffsetRef.current = newOffset;
+        draw(newOffset);
     };
 
     const endDrag = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -406,21 +536,20 @@ export default function FrameGeneratorPage() {
                 // ignore
             }
         }
+        // 最終位置だけ state に反映
+        setPhotoOffset(photoOffsetRef.current);
     };
 
-    // ★ iPhone のときだけ「保存ガイドページ」に切り替える
     const handleDownload = () => {
         if (!finalUrl) return;
         if (typeof window === "undefined") return;
 
         if (isIOS) {
-            // iPhone：専用ページに切り替え
             setIosSaveMode(true);
             window.scrollTo(0, 0);
             return;
         }
 
-        // PC / Android：普通に download 属性で保存
         const a = document.createElement("a");
         a.href = finalUrl;
         a.download = "framed_photo.png";
@@ -432,7 +561,9 @@ export default function FrameGeneratorPage() {
     const handleReset = () => {
         if (photoUrl) URL.revokeObjectURL(photoUrl);
         setPhotoUrl(null);
-        setPhotoOffset({ x: 0, y: 0 });
+        const initOffset = { x: 0, y: 0 };
+        photoOffsetRef.current = initOffset;
+        setPhotoOffset(initOffset);
         setIsLoaded(false);
         setFinalUrl(null);
         setStep("upload");
@@ -505,7 +636,7 @@ export default function FrameGeneratorPage() {
         </AnimatePresence>
     );
 
-    /* ======== iPhone 用：保存ガイドページ ======== */
+    /* ===== iPhone 用 保存ガイドページ ===== */
     if (iosSaveMode && finalUrl) {
         return (
             <>
@@ -558,7 +689,7 @@ export default function FrameGeneratorPage() {
                                     marginBottom: 16,
                                 }}
                             >
-                                <li>画面下（または上）の「共有ボタン」をタップします。</li>
+                                <li>画面下（または上）の共有ボタンをタップします。</li>
                                 <li>表示されたメニューから「画像を保存」または「写真に保存」を選択します。</li>
                                 <li>写真アプリを開き、保存された画像を確認できます。</li>
                             </ol>
@@ -650,7 +781,7 @@ export default function FrameGeneratorPage() {
         );
     }
 
-    /* ======== モバイルレイアウト ======== */
+    /* ===== モバイルレイアウト ===== */
     const renderMobile = () => {
         const phoneWidth = "100%";
 
@@ -678,7 +809,7 @@ export default function FrameGeneratorPage() {
                 >
                     <TopHeader />
 
-                    {/* タイトル */}
+                    {/* 共通タイトル */}
                     <section
                         style={{
                             padding: "8px 14px 6px",
@@ -705,10 +836,9 @@ export default function FrameGeneratorPage() {
                         </p>
                     </section>
 
-                    {/* ステップバー */}
                     <StepIndicator current={step} />
 
-                    {/* Step1: Upload */}
+                    {/* Step: Upload */}
                     {step === "upload" && (
                         <section style={{ padding: "10px 14px 8px" }}>
                             <div
@@ -771,7 +901,7 @@ export default function FrameGeneratorPage() {
                                 type="button"
                                 onClick={() => {
                                     if (photoUrl) {
-                                        setStep("adjust");
+                                        setStep("frame");
                                     } else {
                                         alert("先に画像ファイルを選択してください。");
                                     }
@@ -788,12 +918,71 @@ export default function FrameGeneratorPage() {
                                     marginRight: 8,
                                 }}
                             >
-                                次へ（adjust）
+                                次へ（Frame）
                             </button>
                         </section>
                     )}
 
-                    {/* Step2: Adjust */}
+                    {/* Step: Frame 選択 */}
+                    {step === "frame" && (
+                        <section style={{ padding: "10px 14px 10px" }}>
+                            <div
+                                style={{
+                                    marginBottom: 6,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                }}
+                            >
+                                Frame
+                            </div>
+
+                            <FrameSelector />
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                    marginTop: 10,
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("upload")}
+                                    style={{
+                                        flex: 1,
+                                        padding: "5px 0",
+                                        borderRadius: 999,
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#000000",
+                                        color: "#ffffff",
+                                        fontSize: 10,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    戻る（Upload）
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStep("adjust")}
+                                    style={{
+                                        flex: 1,
+                                        padding: "5px 0",
+                                        borderRadius: 999,
+                                        border: "1px solid #ffffff",
+                                        backgroundColor: "#ffffff",
+                                        color: "#000000",
+                                        fontSize: 10,
+                                        cursor: "pointer",
+                                    }}
+                                >
+                                    次へ（Adjust）
+                                </button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Step: Adjust */}
                     {step === "adjust" && (
                         <section style={{ padding: "10px 14px 10px" }}>
                             <div
@@ -834,7 +1023,10 @@ export default function FrameGeneratorPage() {
                                             width: "100%",
                                             height: "100%",
                                             display: "block",
-                                            cursor: step === "adjust" && photoUrl ? "grab" : "default",
+                                            cursor:
+                                                step === "adjust" && photoUrl
+                                                    ? "grab"
+                                                    : "default",
                                         }}
                                     />
                                 </div>
@@ -859,7 +1051,7 @@ export default function FrameGeneratorPage() {
                             >
                                 <button
                                     type="button"
-                                    onClick={() => setStep("upload")}
+                                    onClick={() => setStep("frame")}
                                     style={{
                                         flex: 1,
                                         padding: "5px 0",
@@ -871,7 +1063,7 @@ export default function FrameGeneratorPage() {
                                         cursor: "pointer",
                                     }}
                                 >
-                                    戻る（Upload）
+                                    戻る（Frame）
                                 </button>
                                 <button
                                     type="button"
@@ -893,7 +1085,7 @@ export default function FrameGeneratorPage() {
                         </section>
                     )}
 
-                    {/* Step3: Done */}
+                    {/* Step: Done */}
                     {step === "done" && (
                         <section style={{ padding: "10px 14px 10px" }}>
                             <div
@@ -1013,7 +1205,7 @@ export default function FrameGeneratorPage() {
         );
     };
 
-    /* ======== PC レイアウト ======== */
+    /* ===== PC レイアウト ===== */
     const renderDesktop = () => {
         return (
             <main
@@ -1039,7 +1231,6 @@ export default function FrameGeneratorPage() {
                 >
                     <TopHeader />
 
-                    {/* タイトル */}
                     <section
                         style={{
                             padding: "10px 18px 6px",
@@ -1067,10 +1258,8 @@ export default function FrameGeneratorPage() {
                         </p>
                     </section>
 
-                    {/* ステップバー */}
                     <StepIndicator current={step} />
 
-                    {/* コンテンツ */}
                     <section
                         style={{
                             padding: "14px 18px 0",
@@ -1084,9 +1273,8 @@ export default function FrameGeneratorPage() {
                                 alignItems: "flex-start",
                             }}
                         >
-                            {/* 左：操作 */}
+                            {/* 左：ステップごとのUI */}
                             <div>
-                                {/* Upload */}
                                 {step === "upload" && (
                                     <div>
                                         <h2
@@ -1112,7 +1300,7 @@ export default function FrameGeneratorPage() {
                                             type="button"
                                             onClick={() => {
                                                 if (photoUrl) {
-                                                    setStep("adjust");
+                                                    setStep("frame");
                                                 } else {
                                                     alert("先に画像ファイルを選択してください。");
                                                 }
@@ -1129,7 +1317,7 @@ export default function FrameGeneratorPage() {
                                                 marginRight: 8,
                                             }}
                                         >
-                                            次へ（adjust）
+                                            次へ（Frame）
                                         </button>
                                         <label
                                             style={{
@@ -1156,13 +1344,12 @@ export default function FrameGeneratorPage() {
                                                 marginTop: 8,
                                             }}
                                         >
-                                            選択後、自動的に位置調整ステップへ進みます。
+                                            選択後、フレーム選択ステップへ進みます。
                                         </p>
                                     </div>
                                 )}
 
-                                {/* Adjust */}
-                                {step === "adjust" && (
+                                {step === "frame" && (
                                     <div>
                                         <h2
                                             style={{
@@ -1171,7 +1358,7 @@ export default function FrameGeneratorPage() {
                                                 marginBottom: 6,
                                             }}
                                         >
-                                            Step 2: 写真の位置を調整
+                                            Step 2: フレームを選択
                                         </h2>
                                         <p
                                             style={{
@@ -1180,8 +1367,11 @@ export default function FrameGeneratorPage() {
                                                 marginBottom: 10,
                                             }}
                                         >
-                                            右側のプレビュー上でドラッグし、写真の見せたい部分がフレーム内に入るように調整してください。
+                                            使用したいフレームを選んでください。
+                                            右側のプレビューで、選択したフレームの見た目を確認できます。
                                         </p>
+
+                                        <FrameSelector />
 
                                         <div
                                             style={{
@@ -1209,6 +1399,71 @@ export default function FrameGeneratorPage() {
                                             </button>
                                             <button
                                                 type="button"
+                                                onClick={() => setStep("adjust")}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "6px 0",
+                                                    borderRadius: 999,
+                                                    border: "1px solid #ffffff",
+                                                    backgroundColor: "#ffffff",
+                                                    color: "#000000",
+                                                    fontSize: 11,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                次へ（Adjust）
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {step === "adjust" && (
+                                    <div>
+                                        <h2
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                marginBottom: 6,
+                                            }}
+                                        >
+                                            Step 3: 写真の位置を調整
+                                        </h2>
+                                        <p
+                                            style={{
+                                                fontSize: 11,
+                                                color: "#d1d5db",
+                                                marginBottom: 10,
+                                            }}
+                                        >
+                                            右側のプレビュー上でドラッグし、写真の見せたい部分がフレーム内に入るように調整してください。
+                                        </p>
+
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                gap: 10,
+                                                marginTop: 12,
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => setStep("frame")}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: "6px 0",
+                                                    borderRadius: 999,
+                                                    border: "1px solid #ffffff",
+                                                    backgroundColor: "#000000",
+                                                    color: "#ffffff",
+                                                    fontSize: 11,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                戻る（Frame）
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={() => setStep("done")}
                                                 style={{
                                                     flex: 1,
@@ -1227,7 +1482,6 @@ export default function FrameGeneratorPage() {
                                     </div>
                                 )}
 
-                                {/* Done */}
                                 {step === "done" && (
                                     <div>
                                         <h2
@@ -1237,7 +1491,7 @@ export default function FrameGeneratorPage() {
                                                 marginBottom: 6,
                                             }}
                                         >
-                                            Step 3: ダウンロード
+                                            Step 4: ダウンロード
                                         </h2>
                                         <p
                                             style={{
@@ -1312,7 +1566,7 @@ export default function FrameGeneratorPage() {
                                 )}
                             </div>
 
-                            {/* 右：プレビュー（キャンバス） */}
+                            {/* 右：プレビュー（Adjust 以外も表示） */}
                             <div>
                                 <div
                                     style={{
