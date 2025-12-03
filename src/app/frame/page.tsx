@@ -962,24 +962,30 @@ export default function FrameGeneratorPage() {
                                             JPEG / PNG などの画像ファイルを選択してください。
                                             選択した画像はブラウザ内だけで処理され、サーバには送信されません。
                                         </p>
-                                        <label
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                // 画像が選ばれているときだけ次へ進むようにするなら:
+                                                if (photoUrl) {
+                                                    setStep("adjust");
+                                                } else {
+                                                    alert("先に画像ファイルを選択してください。");
+                                                }
+                                            }}
                                             style={{
-                                                display: "inline-block",
-                                                padding: "6px 14px",
+                                                flex: 1,
+                                                padding: "4px 10px",
                                                 borderRadius: 999,
                                                 border: "1px solid #ffffff",
-                                                fontSize: 11,
+                                                backgroundColor: "#000000",
+                                                color: "#ffffff",
+                                                fontSize: 10,
                                                 cursor: "pointer",
+                                                marginRight: 8,
                                             }}
                                         >
-                                            画像ファイルを選択
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                                style={{ display: "none" }}
-                                            />
-                                        </label>
+                                            次へ（adjust）
+                                        </button>
                                         <label
                                             style={{
                                                 display: "inline-block",
@@ -1200,46 +1206,7 @@ export default function FrameGeneratorPage() {
                                     </div>
                                 </div>
 
-                                {/* 下：完成品プレビュー */}
-                                <div
-                                    style={{
-                                        border: "1px solid #ffffff",
-                                        backgroundColor: "#111111",
-                                        padding: 8,
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            width: "100%",
-                                            aspectRatio: "4 / 5",
-                                            backgroundColor: "#000000",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                        }}
-                                    >
-                                        {finalUrl ? (
-                                            <img
-                                                src={finalUrl}
-                                                alt="final"
-                                                style={{
-                                                    maxWidth: "100%",
-                                                    maxHeight: "100%",
-                                                    objectFit: "contain",
-                                                }}
-                                            />
-                                        ) : (
-                                            <span
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: "#bbbbbb",
-                                                }}
-                                            >
-                                                完成イメージがここに表示されます
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
                     </section>
