@@ -22,7 +22,7 @@ const FRAMES: Frame[] = [
         innerX: 41,
         innerY: 41,
         innerWidth: 998,
-        innerHeight: 1009,
+        innerHeight: 1030,
     },
     {
         id: "frame2",
@@ -31,7 +31,7 @@ const FRAMES: Frame[] = [
         innerX: 41,
         innerY: 41,
         innerWidth: 998,
-        innerHeight: 1009,
+        innerHeight: 1030,
     },
     {
         id: "frame3",
@@ -40,7 +40,7 @@ const FRAMES: Frame[] = [
         innerX: 41,
         innerY: 41,
         innerWidth: 998,
-        innerHeight: 1009,
+        innerHeight: 1030,
     },
 ];
 
@@ -518,8 +518,8 @@ export default function FrameGeneratorPage() {
         const dx = e.clientX - st.startX;
         const dy = e.clientY - st.startY;
         const newOffset: Offset = {
-            x: st.startOffsetX + dx,
-            y: st.startOffsetY + dy,
+            x: st.startOffsetX + 1.2 * dx,
+            y: st.startOffsetY + 1.2 * dy,
         };
         // state に入れず、ref + 直接 draw でぬるぬる
         photoOffsetRef.current = newOffset;
