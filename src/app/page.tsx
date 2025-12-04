@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PHOTOS } from "@/components/photoData";
 import { useRouter } from "next/navigation";
+import { Analytics } from "@vercel/analytics/next"
 
 type ExtPhoto = (typeof PHOTOS)[number];
 
