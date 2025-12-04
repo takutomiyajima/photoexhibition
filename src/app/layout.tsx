@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = { title: "冒険 Exhibition" };
 
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
 
       </head>
-      <body className="bg-[#7db3dc] text-white antialiased">{children}</body>
+      <body className="bg-[#7db3dc] text-white antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
