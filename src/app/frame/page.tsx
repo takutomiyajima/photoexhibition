@@ -42,6 +42,33 @@ const FRAMES: Frame[] = [
         innerWidth: 998,
         innerHeight: 1030,
     },
+    {
+        id: "frame4",
+        src: "/frames/frame4.png",
+        label: "冒険フレーム D",
+        innerX: 41,
+        innerY: 41,
+        innerWidth: 998,
+        innerHeight: 1030,
+    },
+    {
+        id: "frame5",
+        src: "/frames/frame5.png",
+        label: "冒険フレーム E",
+        innerX: 41,
+        innerY: 41,
+        innerWidth: 998,
+        innerHeight: 1030,
+    },
+    {
+        id: "frame6",
+        src: "/frames/frame6.png",
+        label: "冒険フレーム F",
+        innerX: 41,
+        innerY: 41,
+        innerWidth: 998,
+        innerHeight: 1030,
+    },
 ];
 
 type Offset = { x: number; y: number };
